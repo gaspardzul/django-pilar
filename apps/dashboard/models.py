@@ -29,6 +29,7 @@ class SubscriptionPlan(models.Model):
     def __str__(self):
         return f"{self.name} ({self.get_interval_display()})"
 
+
 class UserSettings(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -92,206 +93,22 @@ class UserSettings(models.Model):
             return False
         return True
 
-
-class Member(models.Model):
-    GENDER_CHOICES = [
-        ('M', 'Masculino'),
-        ('F', 'Femenino'),
-        ('O', 'Otro'),
-    ]
-    
-    STATUS_CHOICES = [
-        ('active', 'Activo'),
-        ('inactive', 'Inactivo'),
-        ('visitor', 'Visitante'),
-        ('transferred', 'Transferido'),
-    ]
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    date_of_birth = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
-    email = models.EmailField(blank=True)
-    phone = models.CharField(max_length=20, blank=True)
-    address = models.TextField(blank=True)
-    join_date = models.DateField(default=timezone.now)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
-    photo = models.ImageField(upload_to='members/', blank=True, null=True)
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = 'Member'
-        verbose_name_plural = 'Members'
-        ordering = ['last_name', 'first_name']
-        indexes = [
-            models.Index(fields=['status']),
-            models.Index(fields=['last_name', 'first_name']),
-        ]
-    
-    def __str__(self):
-        return self.get_full_name()
-    
-    def get_full_name(self):
-        return f"{self.first_name} {self.last_name}"
-    
-    def get_age(self):
-        if not self.date_of_birth:
+    def days_until_trial_end(self):
+        if not self.trial_end_date:
             return None
-        today = timezone.now().date()
-        return today.year - self.date_of_birth.year - (
-            (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
-        )
+        delta = self.trial_end_date - timezone.now()
+        return max(0, delta.days)
 
+    def has_active_subscription(self):
+        return self.is_subscription_active or self.is_trial_active
 
-class Ministry(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    leader = models.ForeignKey(
-        Member,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='led_ministries'
-    )
-    active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = 'Ministry'
-        verbose_name_plural = 'Ministries'
-        ordering = ['name']
-    
-    def __str__(self):
-        return self.name
-    
-    def get_active_members(self):
-        return self.member_ministries.filter(
-            end_date__isnull=True,
-            member__status='active'
-        )
-    
-    def get_leaders(self):
-        return self.member_ministries.filter(
-            role__in=['leader', 'co_leader'],
-            end_date__isnull=True
-        )
+    def can_access_premium_features(self):
+        return self.has_active_subscription() and self.subscription_plan is not None
 
-
-class Family(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    family_name = models.CharField(max_length=200)
-    address = models.TextField(blank=True)
-    primary_contact = models.ForeignKey(
-        Member,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='primary_contact_for_families'
-    )
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = 'Family'
-        verbose_name_plural = 'Families'
-        ordering = ['family_name']
-    
-    def __str__(self):
-        return self.family_name
-    
-    def get_family_members(self):
-        return self.family_members.filter(end_date__isnull=True)
-    
-    def get_family_structure(self):
-        members = self.get_family_members()
-        return {
-            'parents': members.filter(relationship_type__in=['father', 'mother']),
-            'children': members.filter(relationship_type='child'),
-            'others': members.exclude(relationship_type__in=['father', 'mother', 'child'])
-        }
-
-
-class MemberMinistry(models.Model):
-    ROLE_CHOICES = [
-        ('leader', 'Líder'),
-        ('co_leader', 'Co-Líder'),
-        ('member', 'Miembro'),
-        ('volunteer', 'Voluntario'),
-    ]
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='ministry_memberships')
-    ministry = models.ForeignKey(Ministry, on_delete=models.CASCADE, related_name='member_ministries')
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
-    start_date = models.DateField(default=timezone.now)
-    end_date = models.DateField(null=True, blank=True)
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = 'Member Ministry'
-        verbose_name_plural = 'Member Ministries'
-        unique_together = ['member', 'ministry', 'start_date']
-        ordering = ['-start_date']
-    
-    def __str__(self):
-        return f"{self.member.get_full_name()} - {self.ministry.name} ({self.get_role_display()})"
-    
-    def is_leader(self):
-        return self.role in ['leader', 'co_leader']
-    
-    def is_active(self):
-        return self.end_date is None
-
-
-class FamilyMember(models.Model):
-    RELATIONSHIP_CHOICES = [
-        ('father', 'Padre'),
-        ('mother', 'Madre'),
-        ('child', 'Hijo/a'),
-        ('spouse', 'Cónyuge'),
-        ('sibling', 'Hermano/a'),
-        ('grandparent', 'Abuelo/a'),
-        ('grandchild', 'Nieto/a'),
-        ('uncle_aunt', 'Tío/a'),
-        ('nephew_niece', 'Sobrino/a'),
-        ('cousin', 'Primo/a'),
-        ('other', 'Otro'),
-    ]
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name='family_members')
-    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='family_relationships')
-    relationship_type = models.CharField(max_length=20, choices=RELATIONSHIP_CHOICES)
-    is_primary_contact = models.BooleanField(default=False)
-    start_date = models.DateField(default=timezone.now)
-    end_date = models.DateField(null=True, blank=True)
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = 'Family Member'
-        verbose_name_plural = 'Family Members'
-        unique_together = ['family', 'member', 'start_date']
-        ordering = ['family', 'relationship_type']
-    
-    def __str__(self):
-        return f"{self.member.get_full_name()} - {self.family.family_name} ({self.get_relationship_type_display()})"
-    
-    def is_active_member(self):
-        return self.end_date is None
-    
-    def save(self, *args, **kwargs):
-        # If this is set as primary contact, update the family
-        if self.is_primary_contact:
-            self.family.primary_contact = self.member
-            self.family.save()
-        super().save(*args, **kwargs)
+    def get_subscription_display(self):
+        if self.is_trial_active:
+            days_left = self.days_until_trial_end()
+            return f"Trial ({days_left} days left)" if days_left else "Trial"
+        elif self.is_subscription_active:
+            return f"{self.subscription_plan.name} - Active"
+        return "No active subscription"

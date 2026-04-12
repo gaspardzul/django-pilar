@@ -13,7 +13,7 @@
     </div>
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center text-white text-2xl font-medium">
+            <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-medium">
                 {{ member.first_name|first }}{{ member.last_name|first }}
             </div>
             <div>
@@ -32,7 +32,7 @@
                 </p>
             </div>
         </div>
-        <a href="{% url 'dashboard:member_edit' member.id %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+        <a href="{% url 'dashboard:member_edit' member.id %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
             <i class="fa-solid fa-pen mr-2"></i>Editar
         </a>
     </div>
@@ -110,7 +110,7 @@
         <div class="bg-white border border-light-gray rounded">
             <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
                 <h3 class="text-sm font-medium text-black uppercase tracking-wider">Ministerios</h3>
-                <a href="#add-ministry-modal" class="px-3 py-1.5 bg-black text-white text-xs hover:bg-dark-gray transition-colors">
+                <a href="#add-ministry-modal" class="px-3 py-1.5 bg-primary text-white text-xs hover:bg-primary-dark transition-colors">
                     <i class="fa-solid fa-plus mr-1"></i>Agregar
                 </a>
             </div>
@@ -140,7 +140,7 @@
         <div class="bg-white border border-light-gray rounded">
             <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
                 <h3 class="text-sm font-medium text-black uppercase tracking-wider">Familias</h3>
-                <a href="#add-family-modal" class="px-3 py-1.5 bg-black text-white text-xs hover:bg-dark-gray transition-colors">
+                <a href="#add-family-modal" class="px-3 py-1.5 bg-primary text-white text-xs hover:bg-primary-dark transition-colors">
                     <i class="fa-solid fa-plus mr-1"></i>Agregar
                 </a>
             </div>
@@ -283,7 +283,7 @@
             
             <div class="mt-6 flex items-center justify-end gap-3">
                 <a href="#" class="px-4 py-2 text-sm text-gray hover:text-black">Cancelar</a>
-                <button type="submit" class="px-6 py-2.5 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+                <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
                     <i class="fa-solid fa-plus mr-2"></i>Agregar a Ministerio
                 </button>
             </div>
@@ -358,7 +358,7 @@
             
             <div class="mt-6 flex items-center justify-end gap-3">
                 <a href="#" class="px-4 py-2 text-sm text-gray hover:text-black">Cancelar</a>
-                <button type="submit" class="px-6 py-2.5 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+                <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
                     <i class="fa-solid fa-plus mr-2"></i>Agregar a Familia
                 </button>
             </div>

@@ -10,7 +10,7 @@
         <h2 class="text-xl font-medium text-black">Ministerios de la Iglesia</h2>
         <p class="mt-1 text-sm text-gray">Administra los ministerios y sus miembros</p>
     </div>
-    <a href="{% url 'dashboard:ministry_create' %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+    <a href="{% url 'dashboard:ministry_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
         <i class="fa-solid fa-plus mr-2"></i>Agregar Ministerio
     </a>
 </div>
@@ -29,7 +29,7 @@
                 <option value="false" {% if active_filter == 'false' %}selected{% endif %}>Inactivo</option>
             </select>
         </div>
-        <button type="submit" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+        <button type="submit" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
             <i class="fa-solid fa-filter mr-2"></i>Filtrar
         </button>
         {% if search_query or active_filter %}
@@ -58,7 +58,7 @@
         {% for ministry in ministries %}
         <a href="{% url 'dashboard:ministry_detail' ministry.id %}" class="bg-white border border-light-gray rounded p-6 hover:border-black transition-colors group">
             <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 bg-black rounded flex items-center justify-center flex-shrink-0">
+                <div class="w-12 h-12 bg-primary rounded flex items-center justify-center flex-shrink-0">
                     <i class="fa-solid fa-hands-praying text-white text-lg"></i>
                 </div>
                 <span class="px-2 py-1 text-xs rounded {% if ministry.active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">

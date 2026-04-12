@@ -10,7 +10,7 @@
         <h2 class="text-xl font-medium text-black">Familias de la Iglesia</h2>
         <p class="mt-1 text-sm text-gray">Administra las familias y sus miembros</p>
     </div>
-    <a href="{% url 'dashboard:family_create' %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+    <a href="{% url 'dashboard:family_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
         <i class="fa-solid fa-plus mr-2"></i>Agregar Familia
     </a>
 </div>
@@ -22,7 +22,7 @@
             <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar familias..." 
                    class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
         </div>
-        <button type="submit" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+        <button type="submit" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
             <i class="fa-solid fa-search mr-2"></i>Buscar
         </button>
         {% if search_query %}
@@ -51,7 +51,7 @@
         {% for family in families %}
         <a href="{% url 'dashboard:family_detail' family.id %}" class="bg-white border border-light-gray rounded p-6 hover:border-black transition-colors group">
             <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 bg-black rounded flex items-center justify-center flex-shrink-0">
+                <div class="w-12 h-12 bg-primary rounded flex items-center justify-center flex-shrink-0">
                     <i class="fa-solid fa-house-user text-white text-lg"></i>
                 </div>
                 <span class="text-xs text-gray">{{ family.get_family_members.count }} miembros</span>

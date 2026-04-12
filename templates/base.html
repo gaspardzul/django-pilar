@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Pilar Software{% endblock %}</title>
+    <title>{% block title %}Alaba+{% endblock %}</title>
 
     <!-- Tailwind CSS -->
     <script nonce="{{ csp_nonce }}" src="https://cdn.tailwindcss.com"></script>
@@ -12,6 +12,9 @@
             theme: {
                 extend: {
                     colors: {
+                        primary: '#0B7FB3',
+                        'primary-dark': '#095E87',
+                        'primary-light': '#0D9FE0',
                         black: '#121212',
                         'dark-gray': '#292929',
                         gray: '#4a4a4a',
@@ -75,9 +78,9 @@
                 <div class="flex items-center gap-10">
                     <a href="{% url 'landing:home' %}" class="flex items-center gap-2">
                         <div class="w-6 h-6 bg-black flex items-center justify-center">
-                            <span class="text-white text-[10px] font-bold">S</span>
+                            <span class="text-white text-[10px] font-bold">A</span>
                         </div>
-                        <span class="text-sm font-medium">Pilar Software</span>
+                        <span class="text-sm font-medium">Alaba+</span>
                     </a>
                     <div class="hidden md:flex items-center gap-6">
                         <a href="{% url 'landing:features' %}" class="text-sm {% if request.resolver_match.url_name == 'features' %}text-black{% else %}text-gray hover:text-black{% endif %} transition-colors">Features</a>
@@ -148,9 +151,9 @@
                 <div class="col-span-2">
                     <a href="{% url 'landing:home' %}" class="flex items-center gap-2">
                         <div class="w-6 h-6 bg-black flex items-center justify-center">
-                            <span class="text-white text-[10px] font-bold">S</span>
+                            <span class="text-white text-[10px] font-bold">A</span>
                         </div>
-                        <span class="text-sm font-medium">Pilar Software</span>
+                        <span class="text-sm font-medium">Alaba+</span>
                     </a>
                     <p class="mt-4 text-sm text-gray max-w-sm leading-relaxed">
                         Sistema de gestión integral para iglesias. Administra miembros, ministerios, familias y más de forma sencilla.

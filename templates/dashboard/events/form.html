@@ -1,0 +1,201 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Evento | Gestión de Iglesia{% endblock %}
+{% block page_title %}{{ action }} Evento{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 text-sm text-gray mb-2">
+        <a href="{% url 'dashboard:events_list' %}" class="hover:text-black">Eventos</a>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+        <span class="text-black">{{ action }} Evento</span>
+    </div>
+    <h2 class="text-xl font-medium text-black">{{ action }} Evento</h2>
+    <p class="mt-1 text-sm text-gray">Completa la información del evento a continuación</p>
+</div>
+
+<!-- Form -->
+<div class="max-w-3xl">
+    <form method="POST" class="bg-white border border-light-gray rounded">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="px-6 py-4 border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Información Básica</h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="name" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Nombre del Evento <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="name" id="name" required
+                       value="{% if event %}{{ event.name }}{% endif %}"
+                       class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                       placeholder="Ej: Conferencia de Jóvenes 2026">
+            </div>
+            
+            <div>
+                <label for="description" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Descripción
+                </label>
+                <textarea name="description" id="description" rows="4"
+                          class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                          placeholder="Descripción del evento...">{% if event %}{{ event.description }}{% endif %}</textarea>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="event_type" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Tipo de Evento <span class="text-red-500">*</span>
+                    </label>
+                    <select name="event_type" id="event_type" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="service" {% if event and event.event_type == 'service' %}selected{% endif %}>Servicio</option>
+                        <option value="conference" {% if event and event.event_type == 'conference' %}selected{% endif %}>Conferencia</option>
+                        <option value="retreat" {% if event and event.event_type == 'retreat' %}selected{% endif %}>Retiro</option>
+                        <option value="workshop" {% if event and event.event_type == 'workshop' %}selected{% endif %}>Taller</option>
+                        <option value="social" {% if event and event.event_type == 'social' %}selected{% endif %}>Social</option>
+                        <option value="outreach" {% if event and event.event_type == 'outreach' %}selected{% endif %}>Alcance</option>
+                        <option value="other" {% if event and event.event_type == 'other' %}selected{% endif %}>Otro</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="status" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Estado <span class="text-red-500">*</span>
+                    </label>
+                    <select name="status" id="status" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="draft" {% if event and event.status == 'draft' %}selected{% elif not event %}selected{% endif %}>Borrador</option>
+                        <option value="published" {% if event and event.status == 'published' %}selected{% endif %}>Publicado</option>
+                        <option value="ongoing" {% if event and event.status == 'ongoing' %}selected{% endif %}>En Curso</option>
+                        <option value="completed" {% if event and event.status == 'completed' %}selected{% endif %}>Completado</option>
+                        <option value="cancelled" {% if event and event.status == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Date and Location -->
+        <div class="px-6 py-4 border-t border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Fecha y Ubicación</h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="location" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Ubicación <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="location" id="location" required
+                       value="{% if event %}{{ event.location }}{% endif %}"
+                       class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                       placeholder="Dirección completa del evento">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="start_date" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Fecha de Inicio <span class="text-red-500">*</span>
+                    </label>
+                    <input type="datetime-local" name="start_date" id="start_date" required
+                           value="{% if event %}{{ event.start_date|date:'Y-m-d\TH:i' }}{% endif %}"
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                    <p class="mt-1 text-xs text-gray">Fecha y hora de inicio del evento</p>
+                </div>
+                
+                <div>
+                    <label for="end_date" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Fecha de Fin
+                    </label>
+                    <input type="datetime-local" name="end_date" id="end_date"
+                           value="{% if event and event.end_date %}{{ event.end_date|date:'Y-m-d\TH:i' }}{% endif %}"
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                    <p class="mt-1 text-xs text-gray">Opcional - Fecha y hora de finalización</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Entry and Capacity -->
+        <div class="px-6 py-4 border-t border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Entrada y Capacidad</h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div class="flex items-center gap-3">
+                <input type="checkbox" name="is_free_entry" id="is_free_entry" 
+                       {% if event and event.is_free_entry %}checked{% elif not event %}checked{% endif %}
+                       class="w-5 h-5 border-2 border-black focus:ring-0 focus:ring-offset-0"
+                       onchange="document.getElementById('ticket_price').disabled = this.checked; if(this.checked) document.getElementById('ticket_price').value = '';">
+                <label for="is_free_entry" class="text-sm text-black">
+                    Entrada Libre (sin costo)
+                </label>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="ticket_price" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Precio del Boleto
+                    </label>
+                    <input type="number" name="ticket_price" id="ticket_price" step="0.01" min="0"
+                           value="{% if event and event.ticket_price %}{{ event.ticket_price }}{% endif %}"
+                           {% if event and event.is_free_entry %}disabled{% elif not event %}disabled{% endif %}
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none disabled:opacity-50"
+                           placeholder="0.00">
+                    <p class="mt-1 text-xs text-gray">Solo si no es entrada libre</p>
+                </div>
+                
+                <div>
+                    <label for="max_capacity" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Capacidad Máxima
+                    </label>
+                    <input type="number" name="max_capacity" id="max_capacity" min="1"
+                           value="{% if event and event.max_capacity %}{{ event.max_capacity }}{% endif %}"
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                           placeholder="Número de personas">
+                    <p class="mt-1 text-xs text-gray">Opcional - Límite de asistentes</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Organization -->
+        <div class="px-6 py-4 border-t border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Organización</h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="organizer" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Organizador
+                </label>
+                <select name="organizer" id="organizer"
+                        class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                    <option value="">Sin organizador</option>
+                    {% for member in members %}
+                    <option value="{{ member.id }}" {% if event and event.organizer and event.organizer.id == member.id %}selected{% endif %}>
+                        {{ member.get_full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="mt-2 text-xs text-gray">Persona responsable del evento</p>
+            </div>
+            
+            <div>
+                <label for="notes" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Notas
+                </label>
+                <textarea name="notes" id="notes" rows="4"
+                          class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                          placeholder="Notas adicionales sobre el evento...">{% if event %}{{ event.notes }}{% endif %}</textarea>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="px-6 py-4 border-t border-light-gray bg-[#fafafa] flex items-center justify-between">
+            <a href="{% url 'dashboard:events_list' %}" class="text-sm text-gray hover:text-black">
+                Cancelar
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                <i class="fa-solid fa-check mr-2"></i>{{ action }} Evento
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

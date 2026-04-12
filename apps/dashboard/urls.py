@@ -37,4 +37,21 @@ urlpatterns = [
     path('families/<uuid:family_id>/edit/', views.family_edit, name='family_edit'),
     path('families/<uuid:family_id>/add-member/', views.family_add_member, name='family_add_member'),
     path('families/<uuid:family_id>/remove-member/<uuid:family_member_id>/', views.family_remove_member, name='family_remove_member'),
+    
+    # Events
+    path('events/', views.events_list, name='events_list'),
+    path('events/create/', views.event_create, name='event_create'),
+    path('events/<uuid:event_id>/', views.event_detail, name='event_detail'),
+    path('events/<uuid:event_id>/edit/', views.event_edit, name='event_edit'),
+    path('events/<uuid:event_id>/add-work-group/', views.event_add_work_group, name='event_add_work_group'),
+    path('events/<uuid:event_id>/remove-work-group/<uuid:work_group_id>/', views.event_remove_work_group, name='event_remove_work_group'),
+    path('events/<uuid:event_id>/work-group/<uuid:work_group_id>/add-worker/', views.event_add_worker, name='event_add_worker'),
+    path('events/<uuid:event_id>/work-group/<uuid:work_group_id>/remove-worker/<uuid:worker_id>/', views.event_remove_worker, name='event_remove_worker'),
+    
+    # Event Budget
+    path('events/<uuid:event_id>/update-budget/', views.event_update_budget, name='event_update_budget'),
+    path('events/<uuid:event_id>/add-income/', views.event_add_income, name='event_add_income'),
+    path('events/<uuid:event_id>/remove-income/<uuid:income_id>/', views.event_remove_income, name='event_remove_income'),
+    path('events/<uuid:event_id>/add-expense/', views.event_add_expense, name='event_add_expense'),
+    path('events/<uuid:event_id>/remove-expense/<uuid:expense_id>/', views.event_remove_expense, name='event_remove_expense'),
 ]

@@ -28,7 +28,10 @@ format:
 	$(RUFF) format .
 
 seed:
+	@echo "Setting up tenants..."
 	$(PYTHON) manage.py seed_data
+	@echo "\nSeeding demo tenant..."
+	$(PYTHON) manage.py tenant_command seed_data --schema=demo
 
 clean:
 	find . -type d -name __pycache__ -not -path "./venv/*" -exec rm -rf {} +

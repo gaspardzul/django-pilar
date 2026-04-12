@@ -1,0 +1,128 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Eventos | Gestión de Iglesia{% endblock %}
+{% block page_title %}Eventos{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Eventos de la Iglesia</h2>
+        <p class="mt-1 text-sm text-gray">Administra los eventos y sus grupos de trabajo</p>
+    </div>
+    <a href="{% url 'dashboard:event_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Agregar Evento
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="mb-6 bg-white border border-light-gray rounded p-4">
+    <form method="GET" class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-[200px]">
+            <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar eventos..." 
+                   class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+        </div>
+        <div class="min-w-[150px]">
+            <select name="status" class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+                <option value="">Todos los Estados</option>
+                <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Borrador</option>
+                <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Publicado</option>
+                <option value="ongoing" {% if status_filter == 'ongoing' %}selected{% endif %}>En Curso</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completado</option>
+                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelado</option>
+            </select>
+        </div>
+        <div class="min-w-[150px]">
+            <select name="type" class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+                <option value="">Todos los Tipos</option>
+                <option value="service" {% if type_filter == 'service' %}selected{% endif %}>Servicio</option>
+                <option value="conference" {% if type_filter == 'conference' %}selected{% endif %}>Conferencia</option>
+                <option value="retreat" {% if type_filter == 'retreat' %}selected{% endif %}>Retiro</option>
+                <option value="workshop" {% if type_filter == 'workshop' %}selected{% endif %}>Taller</option>
+                <option value="social" {% if type_filter == 'social' %}selected{% endif %}>Social</option>
+                <option value="outreach" {% if type_filter == 'outreach' %}selected{% endif %}>Alcance</option>
+                <option value="other" {% if type_filter == 'other' %}selected{% endif %}>Otro</option>
+            </select>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+            <i class="fa-solid fa-filter mr-2"></i>Filtrar
+        </button>
+        {% if search_query or status_filter or type_filter %}
+        <a href="{% url 'dashboard:events_list' %}" class="px-4 py-2 border border-light-gray text-sm hover:bg-[#fafafa] transition-colors">
+            Limpiar
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Stats -->
+<div class="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Total Eventos</p>
+        <p class="mt-2 text-2xl font-medium text-black">{{ total_events }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Resultados</p>
+        <p class="mt-2 text-2xl font-medium text-black">{{ events|length }}</p>
+    </div>
+</div>
+
+<!-- Events Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% if events %}
+        {% for event in events %}
+        <a href="{% url 'dashboard:event_detail' event.id %}" class="bg-white border border-light-gray rounded p-6 hover:border-primary transition-colors group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 bg-primary rounded flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-calendar-days text-white text-lg"></i>
+                </div>
+                <span class="px-2 py-1 text-xs rounded 
+                    {% if event.status == 'published' %}bg-green-100 text-green-800
+                    {% elif event.status == 'ongoing' %}bg-blue-100 text-blue-800
+                    {% elif event.status == 'completed' %}bg-gray-100 text-gray-800
+                    {% elif event.status == 'cancelled' %}bg-red-100 text-red-800
+                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {{ event.get_status_display_es }}
+                </span>
+            </div>
+            
+            <h3 class="text-lg font-medium text-black group-hover:underline">{{ event.name }}</h3>
+            
+            <div class="mt-3 space-y-2">
+                <div class="flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-calendar text-gray text-xs w-4"></i>
+                    <span class="text-gray">{{ event.start_date|date:"d M Y, H:i" }}</span>
+                </div>
+                
+                <div class="flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-location-dot text-gray text-xs w-4"></i>
+                    <span class="text-gray line-clamp-1">{{ event.location }}</span>
+                </div>
+                
+                <div class="flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-users text-gray text-xs w-4"></i>
+                    <span class="text-gray">{{ event.get_total_workers }} trabajadores</span>
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-light-gray flex items-center justify-between">
+                <span class="text-xs text-gray">{{ event.get_event_type_display }}</span>
+                {% if event.is_free_entry %}
+                <span class="text-xs text-green-600">Entrada Libre</span>
+                {% else %}
+                <span class="text-xs text-gray">${{ event.ticket_price }}</span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="col-span-full bg-white border border-light-gray rounded p-12 text-center">
+            <i class="fa-solid fa-calendar-days text-gray text-3xl mb-3"></i>
+            <p class="text-sm text-gray mb-2">No se encontraron eventos</p>
+            <a href="{% url 'dashboard:event_create' %}" class="text-xs text-black hover:underline">
+                Agregar tu primer evento &rarr;
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

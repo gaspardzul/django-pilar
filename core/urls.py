@@ -26,6 +26,7 @@ urlpatterns = [
     path('robots.txt', robots_txt, name='robots_txt'),
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
+    path('dashboard/', include('apps.dashboard.urls')),
     path('', include('apps.landing.urls')),
 ]
 

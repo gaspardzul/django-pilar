@@ -1,4 +1,4 @@
-# Pilar Software
+# Alaba+
 
 ## Overview
 Sistema multi-tenant de gestión de iglesias con autenticación por email y frontend moderno. Construido con Django 6.0 y Python 3.12.

@@ -79,6 +79,7 @@ TENANT_APPS = [
 
     # Local apps
     'apps.landing',
+    'apps.business',
     'apps.dashboard',
     'apps.subscriptions',
 ]

@@ -7,10 +7,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from .models import (
-    SubscriptionPlan, UserSettings,
-    Member, Ministry, Family, MemberMinistry, FamilyMember
+from apps.business.models import (
+    Member, Ministry, Family, MemberMinistry, FamilyMember,
+    Event, EventWorkGroup, EventWorker,
+    EventBudget, EventIncome, EventExpense
 )
+from .models import SubscriptionPlan, UserSettings
 from .tasks import (
     send_subscription_cancellation_email,
     send_subscription_confirmation_email,
@@ -655,3 +657,314 @@ def family_remove_member(request, family_id, family_member_id):
     
     messages.success(request, f'{member_name} removido de la familia.')
     return redirect('dashboard:family_detail', family_id=family_id)
+
+
+# Events Views
+@login_required
+@require_http_methods(['GET'])
+def events_list(request):
+    events = Event.objects.all().order_by('-start_date')
+    
+    # Search
+    search_query = request.GET.get('q')
+    if search_query:
+        events = events.filter(
+            models.Q(name__icontains=search_query) |
+            models.Q(description__icontains=search_query) |
+            models.Q(location__icontains=search_query)
+        )
+    
+    # Filter by status
+    status_filter = request.GET.get('status')
+    if status_filter:
+        events = events.filter(status=status_filter)
+    
+    # Filter by type
+    type_filter = request.GET.get('type')
+    if type_filter:
+        events = events.filter(event_type=type_filter)
+    
+    context = {
+        'events': events,
+        'total_events': Event.objects.count(),
+        'status_filter': status_filter,
+        'type_filter': type_filter,
+        'search_query': search_query,
+    }
+    return render(request, 'dashboard/events/list.html', context)
+
+
+@login_required
+@require_http_methods(['GET'])
+def event_detail(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Get work groups with their workers
+    work_groups = event.work_groups.all()
+    
+    # Get available members for adding to work groups
+    available_members = Member.objects.filter(status='active').order_by('last_name', 'first_name')
+    
+    # Get or create budget
+    budget, created = EventBudget.objects.get_or_create(event=event)
+    
+    # Get incomes and expenses
+    incomes = budget.incomes.all()
+    expenses = budget.expenses.all()
+    
+    context = {
+        'event': event,
+        'work_groups': work_groups,
+        'available_members': available_members,
+        'budget': budget,
+        'incomes': incomes,
+        'expenses': expenses,
+    }
+    return render(request, 'dashboard/events/detail.html', context)
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def event_create(request):
+    if request.method == 'POST':
+        event = Event.objects.create(
+            name=request.POST.get('name'),
+            description=request.POST.get('description', ''),
+            location=request.POST.get('location'),
+            start_date=request.POST.get('start_date'),
+            end_date=request.POST.get('end_date') or None,
+            is_free_entry=request.POST.get('is_free_entry') == 'on',
+            ticket_price=request.POST.get('ticket_price') or None,
+            max_capacity=request.POST.get('max_capacity') or None,
+            event_type=request.POST.get('event_type', 'service'),
+            status=request.POST.get('status', 'draft'),
+            notes=request.POST.get('notes', ''),
+        )
+        
+        # Set organizer if provided
+        organizer_id = request.POST.get('organizer')
+        if organizer_id:
+            event.organizer = Member.objects.get(id=organizer_id)
+            event.save()
+        
+        messages.success(request, f'Evento {event.name} creado exitosamente.')
+        return redirect('dashboard:event_detail', event_id=event.id)
+    
+    members = Member.objects.filter(status='active').order_by('last_name', 'first_name')
+    return render(request, 'dashboard/events/form.html', {'action': 'Crear', 'members': members})
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def event_edit(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    
+    if request.method == 'POST':
+        event.name = request.POST.get('name')
+        event.description = request.POST.get('description', '')
+        event.location = request.POST.get('location')
+        event.start_date = request.POST.get('start_date')
+        event.end_date = request.POST.get('end_date') or None
+        event.is_free_entry = request.POST.get('is_free_entry') == 'on'
+        event.ticket_price = request.POST.get('ticket_price') or None
+        event.max_capacity = request.POST.get('max_capacity') or None
+        event.event_type = request.POST.get('event_type', 'service')
+        event.status = request.POST.get('status', 'draft')
+        event.notes = request.POST.get('notes', '')
+        
+        # Update organizer if provided
+        organizer_id = request.POST.get('organizer')
+        if organizer_id:
+            event.organizer = Member.objects.get(id=organizer_id)
+        else:
+            event.organizer = None
+        
+        event.save()
+        
+        messages.success(request, f'Evento {event.name} actualizado exitosamente.')
+        return redirect('dashboard:event_detail', event_id=event.id)
+    
+    members = Member.objects.filter(status='active').order_by('last_name', 'first_name')
+    context = {'event': event, 'action': 'Editar', 'members': members}
+    return render(request, 'dashboard/events/form.html', context)
+
+
+# Event Work Groups Views
+@login_required
+@require_http_methods(['POST'])
+def event_add_work_group(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    
+    work_group = EventWorkGroup.objects.create(
+        event=event,
+        name=request.POST.get('name'),
+        description=request.POST.get('description', ''),
+        group_type=request.POST.get('group_type'),
+        required_workers=request.POST.get('required_workers', 1),
+        notes=request.POST.get('notes', ''),
+    )
+    
+    # Set coordinator if provided
+    coordinator_id = request.POST.get('coordinator')
+    if coordinator_id:
+        work_group.coordinator = Member.objects.get(id=coordinator_id)
+        work_group.save()
+    
+    messages.success(request, f'Grupo de trabajo {work_group.name} agregado exitosamente.')
+    return redirect('dashboard:event_detail', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_remove_work_group(request, event_id, work_group_id):
+    event = get_object_or_404(Event, id=event_id)
+    work_group = get_object_or_404(EventWorkGroup, id=work_group_id, event=event)
+    
+    group_name = work_group.name
+    work_group.delete()
+    
+    messages.success(request, f'Grupo de trabajo {group_name} eliminado.')
+    return redirect('dashboard:event_detail', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_add_worker(request, event_id, work_group_id):
+    event = get_object_or_404(Event, id=event_id)
+    work_group = get_object_or_404(EventWorkGroup, id=work_group_id, event=event)
+    member_id = request.POST.get('member_id')
+    
+    if member_id:
+        member = get_object_or_404(Member, id=member_id)
+        
+        # Check if worker already exists
+        existing = EventWorker.objects.filter(
+            work_group=work_group,
+            member=member
+        ).exists()
+        
+        if existing:
+            messages.warning(request, f'{member.get_full_name()} ya está en este grupo de trabajo.')
+        else:
+            EventWorker.objects.create(
+                work_group=work_group,
+                member=member,
+                status=request.POST.get('status', 'invited'),
+                role=request.POST.get('role', ''),
+                notes=request.POST.get('notes', ''),
+            )
+            messages.success(request, f'{member.get_full_name()} agregado al grupo exitosamente.')
+    
+    return redirect('dashboard:event_detail', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_remove_worker(request, event_id, work_group_id, worker_id):
+    event = get_object_or_404(Event, id=event_id)
+    work_group = get_object_or_404(EventWorkGroup, id=work_group_id, event=event)
+    worker = get_object_or_404(EventWorker, id=worker_id, work_group=work_group)
+    
+    member_name = worker.member.get_full_name()
+    worker.delete()
+    
+    messages.success(request, f'{member_name} removido del grupo.')
+    return redirect('dashboard:event_detail', event_id=event_id)
+
+
+# Event Budget Views
+@login_required
+@require_http_methods(['POST'])
+def event_update_budget(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    budget, created = EventBudget.objects.get_or_create(event=event)
+    
+    budget.total_budget = request.POST.get('total_budget', 0)
+    budget.target_budget = request.POST.get('target_budget', 0)
+    budget.notes = request.POST.get('notes', '')
+    budget.save()
+    
+    messages.success(request, 'Presupuesto actualizado exitosamente.')
+    return redirect('dashboard:event_detail', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_add_income(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    budget, created = EventBudget.objects.get_or_create(event=event)
+    
+    income = EventIncome.objects.create(
+        budget=budget,
+        amount=request.POST.get('amount'),
+        source=request.POST.get('source'),
+        description=request.POST.get('description'),
+        date=request.POST.get('date'),
+        receipt_number=request.POST.get('receipt_number', ''),
+        notes=request.POST.get('notes', ''),
+    )
+    
+    # Set donor if provided
+    donor_id = request.POST.get('donor')
+    if donor_id:
+        income.donor = Member.objects.get(id=donor_id)
+        income.save()
+    
+    messages.success(request, f'Ingreso de ${income.amount} agregado exitosamente.')
+    return redirect('dashboard:event_detail', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_remove_income(request, event_id, income_id):
+    event = get_object_or_404(Event, id=event_id)
+    budget = get_object_or_404(EventBudget, event=event)
+    income = get_object_or_404(EventIncome, id=income_id, budget=budget)
+    
+    amount = income.amount
+    income.delete()
+    
+    messages.success(request, f'Ingreso de ${amount} eliminado.')
+    return redirect('dashboard:event_detail', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_add_expense(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    budget, created = EventBudget.objects.get_or_create(event=event)
+    
+    expense = EventExpense.objects.create(
+        budget=budget,
+        amount=request.POST.get('amount'),
+        category=request.POST.get('category'),
+        description=request.POST.get('description'),
+        vendor=request.POST.get('vendor', ''),
+        date=request.POST.get('date'),
+        invoice_number=request.POST.get('invoice_number', ''),
+        status=request.POST.get('status', 'pending'),
+        notes=request.POST.get('notes', ''),
+    )
+    
+    # Set paid_by if provided
+    paid_by_id = request.POST.get('paid_by')
+    if paid_by_id:
+        expense.paid_by = Member.objects.get(id=paid_by_id)
+        expense.save()
+    
+    messages.success(request, f'Egreso de ${expense.amount} agregado exitosamente.')
+    return redirect('dashboard:event_detail', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_remove_expense(request, event_id, expense_id):
+    event = get_object_or_404(Event, id=event_id)
+    budget = get_object_or_404(EventBudget, event=event)
+    expense = get_object_or_404(EventExpense, id=expense_id, budget=budget)
+    
+    amount = expense.amount
+    expense.delete()
+    
+    messages.success(request, f'Egreso de ${amount} eliminado.')
+    return redirect('dashboard:event_detail', event_id=event_id)

@@ -1,6 +1,6 @@
-# Pilar Software
+# Alaba+
 
-Sistema de gestión integral para iglesias. Administra miembros, ministerios, familias y eventos de forma sencilla y segura.
+Sistema multi-tenant de gestión de iglesias construido con Django 6.0. Administra miembros, ministerios, familias y eventos de forma sencilla y segura.
 
 <div align="center">
   <img src="https://img.shields.io/badge/Django-6.0-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django"/>

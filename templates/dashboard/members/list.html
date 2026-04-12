@@ -10,7 +10,7 @@
         <h2 class="text-xl font-medium text-black">Miembros de la Iglesia</h2>
         <p class="mt-1 text-sm text-gray">Administra los miembros de tu iglesia y su información</p>
     </div>
-    <a href="{% url 'dashboard:member_create' %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+    <a href="{% url 'dashboard:member_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
         <i class="fa-solid fa-plus mr-2"></i>Agregar Miembro
     </a>
 </div>
@@ -31,7 +31,7 @@
                 <option value="transferred" {% if status_filter == 'transferred' %}selected{% endif %}>Transferido</option>
             </select>
         </div>
-        <button type="submit" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+        <button type="submit" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
             <i class="fa-solid fa-filter mr-2"></i>Filtrar
         </button>
         {% if search_query or status_filter %}
@@ -74,8 +74,8 @@
                     <tr class="hover:bg-[#fafafa] transition-colors">
                         <td class="px-5 py-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-[#fafafa] rounded-full flex items-center justify-center">
-                                    <i class="fa-solid fa-user text-gray text-xs"></i>
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-medium">
+                                    <i class="fa-solid fa-user text-white text-xs"></i>
                                 </div>
                                 <div>
                                     <a href="{% url 'dashboard:member_detail' member.id %}" class="text-sm font-medium text-black hover:underline">
