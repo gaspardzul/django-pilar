@@ -1,30 +1,34 @@
 .PHONY: install run migrate test superuser lint format seed clean
-
+PYTHON_BIN ?= python3.12
+PYTHON := ./venv/bin/python
+PIP := ./venv/bin/pip
+RUFF := ./venv/bin/ruff
 install:
-	python3 -m venv venv
-	./venv/bin/pip install -r requirements.txt
+
+	$(PYTHON_BIN) -m venv --clear venv
+	$(PIP) install -r requirements.txt
 
 run:
-	python manage.py runserver
+	$(PYTHON) manage.py runserver
 
 migrate:
-	python manage.py makemigrations
-	python manage.py migrate
+	$(PYTHON) manage.py makemigrations
+	$(PYTHON) manage.py migrate
 
 test:
-	python manage.py test
+	$(PYTHON) manage.py test
 
 superuser:
-	python manage.py createsuperuser
+	$(PYTHON) manage.py createsuperuser
 
 lint:
-	ruff check .
+	$(RUFF) check .
 
 format:
-	ruff format .
+	$(RUFF) format .
 
 seed:
-	python manage.py seed_data
+	$(PYTHON) manage.py seed_data
 
 clean:
 	find . -type d -name __pycache__ -not -path "./venv/*" -exec rm -rf {} +
