@@ -1,0 +1,309 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ family.family_name }} | Familias{% endblock %}
+{% block page_title %}Detalles de la Familia{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 text-sm text-gray mb-2">
+        <a href="{% url 'dashboard:families_list' %}" class="hover:text-black">Familias</a>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+        <span class="text-black">{{ family.family_name }}</span>
+    </div>
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-black rounded flex items-center justify-center">
+                <i class="fa-solid fa-house-user text-white text-2xl"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-medium text-black">{{ family.family_name }}</h2>
+                <p class="mt-1 text-sm text-gray">{{ all_members.count }} miembros en la familia</p>
+            </div>
+        </div>
+        <a href="{% url 'dashboard:family_edit' family.id %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+            <i class="fa-solid fa-pen mr-2"></i>Editar
+        </a>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Info -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Family Information -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Información de la Familia</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                {% if family.primary_contact %}
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider mb-2">Contacto Principal</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-medium">
+                            {{ family.primary_contact.first_name|first }}{{ family.primary_contact.last_name|first }}
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-black">{{ family.primary_contact.get_full_name }}</p>
+                            {% if family.primary_contact.phone %}
+                            <p class="text-xs text-gray">{{ family.primary_contact.phone }}</p>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'dashboard:member_detail' family.primary_contact.id %}" class="ml-auto text-xs text-gray hover:text-black">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if family.address %}
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider mb-2">Dirección</p>
+                    <p class="text-sm text-black">{{ family.address }}</p>
+                </div>
+                {% endif %}
+                
+                {% if family.notes %}
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider mb-2">Notas</p>
+                    <p class="text-sm text-gray whitespace-pre-wrap">{{ family.notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Family Members by Structure -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Miembros de la Familia</h3>
+                <a href="#add-member-modal" class="px-3 py-1.5 bg-black text-white text-xs hover:bg-dark-gray transition-colors">
+                    <i class="fa-solid fa-plus mr-1"></i>Agregar
+                </a>
+            </div>
+            
+            <!-- Parents -->
+            {% if structure.parents %}
+            <div class="px-6 py-4 border-b border-light-gray">
+                <p class="text-xs font-medium text-gray uppercase tracking-wider mb-3">Padres</p>
+                <div class="space-y-2">
+                    {% for fm in structure.parents %}
+                    <div class="flex items-center justify-between hover:bg-[#fafafa] p-2 rounded transition-colors group">
+                        <div class="flex items-center gap-3 flex-1">
+                            <div class="w-8 h-8 bg-[#fafafa] rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-user text-gray text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-black">{{ fm.member.get_full_name }}</p>
+                                <p class="text-xs text-gray">{{ fm.get_relationship_type_display }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'dashboard:member_detail' fm.member.id %}" class="text-xs text-gray hover:text-black px-2 py-1">
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                            <form method="POST" action="{% url 'dashboard:family_remove_member' family.id fm.id %}" class="inline" onsubmit="return confirm('¿Remover a {{ fm.member.get_full_name }} de esta familia?');">
+                                {% csrf_token %}
+                                <button type="submit" class="text-xs text-red-600 hover:text-red-800 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Children -->
+            {% if structure.children %}
+            <div class="px-6 py-4 border-b border-light-gray">
+                <p class="text-xs font-medium text-gray uppercase tracking-wider mb-3">Hijos</p>
+                <div class="space-y-2">
+                    {% for fm in structure.children %}
+                    <div class="flex items-center justify-between hover:bg-[#fafafa] p-2 rounded transition-colors group">
+                        <div class="flex items-center gap-3 flex-1">
+                            <div class="w-8 h-8 bg-[#fafafa] rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-user text-gray text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-black">{{ fm.member.get_full_name }}</p>
+                                <p class="text-xs text-gray">{{ fm.get_relationship_type_display }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'dashboard:member_detail' fm.member.id %}" class="text-xs text-gray hover:text-black px-2 py-1">
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                            <form method="POST" action="{% url 'dashboard:family_remove_member' family.id fm.id %}" class="inline" onsubmit="return confirm('¿Remover a {{ fm.member.get_full_name }} de esta familia?');">
+                                {% csrf_token %}
+                                <button type="submit" class="text-xs text-red-600 hover:text-red-800 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Others -->
+            {% if structure.others %}
+            <div class="px-6 py-4">
+                <p class="text-xs font-medium text-gray uppercase tracking-wider mb-3">Otros Familiares</p>
+                <div class="space-y-2">
+                    {% for fm in structure.others %}
+                    <div class="flex items-center justify-between hover:bg-[#fafafa] p-2 rounded transition-colors group">
+                        <div class="flex items-center gap-3 flex-1">
+                            <div class="w-8 h-8 bg-[#fafafa] rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-user text-gray text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-black">{{ fm.member.get_full_name }}</p>
+                                <p class="text-xs text-gray">{{ fm.get_relationship_type_display }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'dashboard:member_detail' fm.member.id %}" class="text-xs text-gray hover:text-black px-2 py-1">
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                            <form method="POST" action="{% url 'dashboard:family_remove_member' family.id fm.id %}" class="inline" onsubmit="return confirm('¿Remover a {{ fm.member.get_full_name }} de esta familia?');">
+                                {% csrf_token %}
+                                <button type="submit" class="text-xs text-red-600 hover:text-red-800 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if not all_members %}
+            <div class="px-6 py-8 text-center">
+                <i class="fa-solid fa-users text-gray text-2xl mb-2"></i>
+                <p class="text-sm text-gray">No hay miembros en esta familia</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Quick Stats -->
+        <div class="bg-white border border-light-gray rounded p-6">
+            <h3 class="text-xs font-medium text-gray uppercase tracking-wider mb-4">Estadísticas</h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray">Total Miembros</p>
+                    <p class="text-lg font-medium text-black">{{ all_members.count }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray">Padres</p>
+                    <p class="text-lg font-medium text-black">{{ structure.parents.count }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray">Hijos</p>
+                    <p class="text-lg font-medium text-black">{{ structure.children.count }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray">Creada</p>
+                    <p class="text-lg font-medium text-black">{{ family.created_at|date:"M Y" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="bg-white border border-light-gray rounded p-6">
+            <h3 class="text-xs font-medium text-gray uppercase tracking-wider mb-4">Acciones</h3>
+            <div class="space-y-2">
+                <a href="{% url 'dashboard:family_edit' family.id %}" class="flex items-center gap-3 px-3 py-2 rounded hover:bg-[#fafafa] transition-colors group">
+                    <i class="fa-solid fa-pen text-gray text-xs w-4 text-center"></i>
+                    <span class="text-sm text-gray group-hover:text-black">Editar Familia</span>
+                </a>
+                <a href="#add-member-modal" class="flex items-center gap-3 px-3 py-2 rounded hover:bg-[#fafafa] transition-colors group">
+                    <i class="fa-solid fa-user-plus text-gray text-xs w-4 text-center"></i>
+                    <span class="text-sm text-gray group-hover:text-black">Agregar Miembro</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div id="add-member-modal" class="fixed inset-0 z-50 hidden [&:target]:flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between sticky top-0 bg-white">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Agregar Miembro a la Familia</h3>
+            <a href="#" class="text-gray hover:text-black">
+                <i class="fa-solid fa-times"></i>
+            </a>
+        </div>
+        
+        <form method="POST" action="{% url 'dashboard:family_add_member' family.id %}" class="p-6">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="member_id" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Seleccionar Miembro <span class="text-red-500">*</span>
+                    </label>
+                    <select name="member_id" id="member_id" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="">Seleccionar miembro...</option>
+                        {% for member in available_members %}
+                        <option value="{{ member.id }}">{{ member.get_full_name }} - {{ member.get_status_display }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="relationship_type" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Tipo de Relación <span class="text-red-500">*</span>
+                    </label>
+                    <select name="relationship_type" id="relationship_type" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="father">Padre</option>
+                        <option value="mother">Madre</option>
+                        <option value="child">Hijo/a</option>
+                        <option value="spouse">Cónyuge</option>
+                        <option value="sibling">Hermano/a</option>
+                        <option value="grandparent">Abuelo/a</option>
+                        <option value="grandchild">Nieto/a</option>
+                        <option value="uncle_aunt">Tío/a</option>
+                        <option value="nephew_niece">Sobrino/a</option>
+                        <option value="cousin">Primo/a</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="is_primary_contact" id="is_primary_contact" 
+                           class="w-5 h-5 border-2 border-black focus:ring-0 focus:ring-offset-0">
+                    <label for="is_primary_contact" class="text-sm text-black">
+                        Establecer como contacto principal
+                    </label>
+                </div>
+                
+                <div>
+                    <label for="notes" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Notas
+                    </label>
+                    <textarea name="notes" id="notes" rows="3"
+                              class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                              placeholder="Notas adicionales..."></textarea>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <a href="#" class="px-4 py-2 text-sm text-gray hover:text-black">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+                    <i class="fa-solid fa-plus mr-2"></i>Agregar Miembro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

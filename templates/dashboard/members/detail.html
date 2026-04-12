@@ -1,0 +1,368 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ member.get_full_name }} | Miembros{% endblock %}
+{% block page_title %}Detalles del Miembro{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 text-sm text-gray mb-2">
+        <a href="{% url 'dashboard:members_list' %}" class="hover:text-black">Miembros</a>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+        <span class="text-black">{{ member.get_full_name }}</span>
+    </div>
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center text-white text-2xl font-medium">
+                {{ member.first_name|first }}{{ member.last_name|first }}
+            </div>
+            <div>
+                <h2 class="text-xl font-medium text-black">{{ member.get_full_name }}</h2>
+                <p class="mt-1 text-sm text-gray">
+                    <span class="px-2 py-1 text-xs rounded
+                        {% if member.status == 'active' %}bg-green-100 text-green-800
+                        {% elif member.status == 'inactive' %}bg-gray-100 text-gray-800
+                        {% elif member.status == 'visitor' %}bg-blue-100 text-blue-800
+                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                        {{ member.get_status_display }}
+                    </span>
+                    {% if member.get_age %}
+                    <span class="ml-2">{{ member.get_age }} años</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <a href="{% url 'dashboard:member_edit' member.id %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+            <i class="fa-solid fa-pen mr-2"></i>Editar
+        </a>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Info -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Personal Information -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Información Personal</h3>
+            </div>
+            <div class="p-6">
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Nombre Completo</dt>
+                        <dd class="text-sm text-black">{{ member.get_full_name }}</dd>
+                    </div>
+                    {% if member.date_of_birth %}
+                    <div>
+                        <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Fecha de Nacimiento</dt>
+                        <dd class="text-sm text-black">{{ member.date_of_birth|date:"F d, Y" }}</dd>
+                    </div>
+                    {% endif %}
+                    {% if member.gender %}
+                    <div>
+                        <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Género</dt>
+                        <dd class="text-sm text-black">{{ member.get_gender_display }}</dd>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Fecha de Ingreso</dt>
+                        <dd class="text-sm text-black">{{ member.join_date|date:"F d, Y" }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Información de Contacto</h3>
+            </div>
+            <div class="p-6">
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% if member.email %}
+                    <div>
+                        <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Email</dt>
+                        <dd class="text-sm text-black">
+                            <a href="mailto:{{ member.email }}" class="hover:underline">{{ member.email }}</a>
+                        </dd>
+                    </div>
+                    {% endif %}
+                    {% if member.phone %}
+                    <div>
+                        <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Teléfono</dt>
+                        <dd class="text-sm text-black">
+                            <a href="tel:{{ member.phone }}" class="hover:underline">{{ member.phone }}</a>
+                        </dd>
+                    </div>
+                    {% endif %}
+                    {% if member.address %}
+                    <div class="md:col-span-2">
+                        <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Dirección</dt>
+                        <dd class="text-sm text-black">{{ member.address }}</dd>
+                    </div>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <!-- Ministries -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Ministerios</h3>
+                <a href="#add-ministry-modal" class="px-3 py-1.5 bg-black text-white text-xs hover:bg-dark-gray transition-colors">
+                    <i class="fa-solid fa-plus mr-1"></i>Agregar
+                </a>
+            </div>
+            <div class="divide-y divide-light-gray">
+                {% if ministries %}
+                    {% for mm in ministries %}
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-[#fafafa] transition-colors">
+                        <div>
+                            <p class="text-sm font-medium text-black">{{ mm.ministry.name }}</p>
+                            <p class="text-xs text-gray">{{ mm.get_role_display }} • Desde {{ mm.start_date|date:"M Y" }}</p>
+                        </div>
+                        <a href="{% url 'dashboard:ministry_detail' mm.ministry.id %}" class="text-xs text-gray hover:text-black">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="px-6 py-8 text-center">
+                        <i class="fa-solid fa-hands-praying text-gray text-2xl mb-2"></i>
+                        <p class="text-sm text-gray">No forma parte de ningún ministerio aún</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Families -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Familias</h3>
+                <a href="#add-family-modal" class="px-3 py-1.5 bg-black text-white text-xs hover:bg-dark-gray transition-colors">
+                    <i class="fa-solid fa-plus mr-1"></i>Agregar
+                </a>
+            </div>
+            <div class="divide-y divide-light-gray">
+                {% if families %}
+                    {% for fm in families %}
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-[#fafafa] transition-colors">
+                        <div>
+                            <p class="text-sm font-medium text-black">{{ fm.family.family_name }}</p>
+                            <p class="text-xs text-gray">
+                                {{ fm.get_relationship_type_display }}
+                                {% if fm.is_primary_contact %}
+                                <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-[10px]">Contacto Principal</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <a href="{% url 'dashboard:family_detail' fm.family.id %}" class="text-xs text-gray hover:text-black">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="px-6 py-8 text-center">
+                        <i class="fa-solid fa-house-user text-gray text-2xl mb-2"></i>
+                        <p class="text-sm text-gray">No forma parte de ninguna familia aún</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Quick Stats -->
+        <div class="bg-white border border-light-gray rounded p-6">
+            <h3 class="text-xs font-medium text-gray uppercase tracking-wider mb-4">Estadísticas Rápidas</h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray">Miembro Desde</p>
+                    <p class="text-lg font-medium text-black">{{ member.join_date|date:"M Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray">Ministerios Activos</p>
+                    <p class="text-lg font-medium text-black">{{ ministries.count }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray">Familias</p>
+                    <p class="text-lg font-medium text-black">{{ families.count }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        {% if member.notes %}
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Notas</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray whitespace-pre-wrap">{{ member.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="bg-white border border-light-gray rounded p-6">
+            <h3 class="text-xs font-medium text-gray uppercase tracking-wider mb-4">Acciones</h3>
+            <div class="space-y-2">
+                <a href="{% url 'dashboard:member_edit' member.id %}" class="flex items-center gap-3 px-3 py-2 rounded hover:bg-[#fafafa] transition-colors group">
+                    <i class="fa-solid fa-pen text-gray text-xs w-4 text-center"></i>
+                    <span class="text-sm text-gray group-hover:text-black">Editar Miembro</span>
+                </a>
+                <a href="mailto:{{ member.email }}" class="flex items-center gap-3 px-3 py-2 rounded hover:bg-[#fafafa] transition-colors group">
+                    <i class="fa-solid fa-envelope text-gray text-xs w-4 text-center"></i>
+                    <span class="text-sm text-gray group-hover:text-black">Enviar Correo</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add to Ministry Modal -->
+<div id="add-ministry-modal" class="fixed inset-0 z-50 hidden [&:target]:flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between sticky top-0 bg-white">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Agregar a Ministerio</h3>
+            <a href="#" class="text-gray hover:text-black">
+                <i class="fa-solid fa-times"></i>
+            </a>
+        </div>
+        
+        <form method="POST" action="{% url 'dashboard:member_add_to_ministry' member.id %}" class="p-6">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="ministry_id" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Seleccionar Ministerio <span class="text-red-500">*</span>
+                    </label>
+                    <select name="ministry_id" id="ministry_id" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="">Seleccionar ministerio...</option>
+                        {% for ministry in available_ministries %}
+                        <option value="{{ ministry.id }}">{{ ministry.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="role" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Rol en el Ministerio <span class="text-red-500">*</span>
+                    </label>
+                    <select name="role" id="role" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="member">Miembro</option>
+                        <option value="leader">Líder</option>
+                        <option value="co_leader">Co-Líder</option>
+                        <option value="volunteer">Voluntario</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="start_date" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Fecha de Inicio
+                    </label>
+                    <input type="date" name="start_date" id="start_date"
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                    <p class="mt-1 text-xs text-gray">Formato: dd/mm/aaaa • Si no se especifica, se usará la fecha actual</p>
+                </div>
+                
+                <div>
+                    <label for="notes" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Notas
+                    </label>
+                    <textarea name="notes" id="notes" rows="3"
+                              class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                              placeholder="Notas adicionales..."></textarea>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <a href="#" class="px-4 py-2 text-sm text-gray hover:text-black">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+                    <i class="fa-solid fa-plus mr-2"></i>Agregar a Ministerio
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add to Family Modal -->
+<div id="add-family-modal" class="fixed inset-0 z-50 hidden [&:target]:flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between sticky top-0 bg-white">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Agregar a Familia</h3>
+            <a href="#" class="text-gray hover:text-black">
+                <i class="fa-solid fa-times"></i>
+            </a>
+        </div>
+        
+        <form method="POST" action="{% url 'dashboard:member_add_to_family' member.id %}" class="p-6">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="family_id" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Seleccionar Familia <span class="text-red-500">*</span>
+                    </label>
+                    <select name="family_id" id="family_id" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="">Seleccionar familia...</option>
+                        {% for family in available_families %}
+                        <option value="{{ family.id }}">{{ family.family_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="relationship_type" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Tipo de Relación <span class="text-red-500">*</span>
+                    </label>
+                    <select name="relationship_type" id="relationship_type" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="father">Padre</option>
+                        <option value="mother">Madre</option>
+                        <option value="child">Hijo/a</option>
+                        <option value="spouse">Cónyuge</option>
+                        <option value="sibling">Hermano/a</option>
+                        <option value="grandparent">Abuelo/a</option>
+                        <option value="grandchild">Nieto/a</option>
+                        <option value="uncle_aunt">Tío/a</option>
+                        <option value="nephew_niece">Sobrino/a</option>
+                        <option value="cousin">Primo/a</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" name="is_primary_contact" id="is_primary_contact" 
+                           class="w-5 h-5 border-2 border-black focus:ring-0 focus:ring-offset-0">
+                    <label for="is_primary_contact" class="text-sm text-black">
+                        Establecer como contacto principal de la familia
+                    </label>
+                </div>
+                
+                <div>
+                    <label for="family_notes" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Notas
+                    </label>
+                    <textarea name="notes" id="family_notes" rows="3"
+                              class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                              placeholder="Notas adicionales..."></textarea>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <a href="#" class="px-4 py-2 text-sm text-gray hover:text-black">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+                    <i class="fa-solid fa-plus mr-2"></i>Agregar a Familia
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

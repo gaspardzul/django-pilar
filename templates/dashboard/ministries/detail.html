@@ -1,0 +1,226 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ ministry.name }} | Ministerios{% endblock %}
+{% block page_title %}Detalles del Ministerio{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 text-sm text-gray mb-2">
+        <a href="{% url 'dashboard:ministries_list' %}" class="hover:text-black">Ministerios</a>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+        <span class="text-black">{{ ministry.name }}</span>
+    </div>
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-black rounded flex items-center justify-center">
+                <i class="fa-solid fa-hands-praying text-white text-2xl"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-medium text-black">{{ ministry.name }}</h2>
+                <p class="mt-1 text-sm text-gray">
+                    <span class="px-2 py-1 text-xs rounded {% if ministry.active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {% if ministry.active %}Activo{% else %}Inactivo{% endif %}
+                    </span>
+                    <span class="ml-2">{{ active_members.count }} miembros activos</span>
+                </p>
+            </div>
+        </div>
+        <a href="{% url 'dashboard:ministry_edit' ministry.id %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+            <i class="fa-solid fa-pen mr-2"></i>Editar
+        </a>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Info -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Description -->
+        {% if ministry.description %}
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Descripción</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray whitespace-pre-wrap">{{ ministry.description }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Leadership -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Liderazgo</h3>
+            </div>
+            <div class="p-6">
+                {% if ministry.leader %}
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white font-medium">
+                        {{ ministry.leader.first_name|first }}{{ ministry.leader.last_name|first }}
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-black">{{ ministry.leader.get_full_name }}</p>
+                        <p class="text-xs text-gray">Líder Principal</p>
+                    </div>
+                    <a href="{% url 'dashboard:member_detail' ministry.leader.id %}" class="ml-auto text-xs text-gray hover:text-black">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+                {% else %}
+                <p class="text-sm text-gray">No hay líder asignado</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Members -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Miembros Activos</h3>
+                <a href="#add-member-modal" class="px-3 py-1.5 bg-black text-white text-xs hover:bg-dark-gray transition-colors">
+                    <i class="fa-solid fa-plus mr-1"></i>Agregar
+                </a>
+            </div>
+            <div class="divide-y divide-light-gray">
+                {% if active_members %}
+                    {% for mm in active_members %}
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-[#fafafa] transition-colors group">
+                        <div class="flex items-center gap-3 flex-1">
+                            <div class="w-10 h-10 bg-[#fafafa] rounded-full flex items-center justify-center">
+                                <i class="fa-solid fa-user text-gray text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-black">{{ mm.member.get_full_name }}</p>
+                                <p class="text-xs text-gray">{{ mm.get_role_display }} • Desde {{ mm.start_date|date:"M Y" }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'dashboard:member_detail' mm.member.id %}" class="text-xs text-gray hover:text-black px-2 py-1">
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                            <form method="POST" action="{% url 'dashboard:ministry_remove_member' ministry.id mm.id %}" class="inline" onsubmit="return confirm('¿Remover a {{ mm.member.get_full_name }} de este ministerio?');">
+                                {% csrf_token %}
+                                <button type="submit" class="text-xs text-red-600 hover:text-red-800 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="px-6 py-8 text-center">
+                        <i class="fa-solid fa-users text-gray text-2xl mb-2"></i>
+                        <p class="text-sm text-gray">No hay miembros activos en este ministerio</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Quick Stats -->
+        <div class="bg-white border border-light-gray rounded p-6">
+            <h3 class="text-xs font-medium text-gray uppercase tracking-wider mb-4">Estadísticas Rápidas</h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-gray">Miembros Activos</p>
+                    <p class="text-lg font-medium text-black">{{ active_members.count }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray">Líderes</p>
+                    <p class="text-lg font-medium text-black">{{ leaders_count }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray">Creado</p>
+                    <p class="text-lg font-medium text-black">{{ ministry.created_at|date:"M Y" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="bg-white border border-light-gray rounded p-6">
+            <h3 class="text-xs font-medium text-gray uppercase tracking-wider mb-4">Acciones</h3>
+            <div class="space-y-2">
+                <a href="{% url 'dashboard:ministry_edit' ministry.id %}" class="flex items-center gap-3 px-3 py-2 rounded hover:bg-[#fafafa] transition-colors group">
+                    <i class="fa-solid fa-pen text-gray text-xs w-4 text-center"></i>
+                    <span class="text-sm text-gray group-hover:text-black">Editar Ministerio</span>
+                </a>
+                <a href="{% url 'dashboard:members_list' %}" class="flex items-center gap-3 px-3 py-2 rounded hover:bg-[#fafafa] transition-colors group">
+                    <i class="fa-solid fa-user-plus text-gray text-xs w-4 text-center"></i>
+                    <span class="text-sm text-gray group-hover:text-black">Agregar Miembro</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div id="add-member-modal" class="fixed inset-0 z-50 hidden [&:target]:flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between sticky top-0 bg-white">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Agregar Miembro al Ministerio</h3>
+            <a href="#" class="text-gray hover:text-black">
+                <i class="fa-solid fa-times"></i>
+            </a>
+        </div>
+        
+        <form method="POST" action="{% url 'dashboard:ministry_add_member' ministry.id %}" class="p-6">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="member_id" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Seleccionar Miembro <span class="text-red-500">*</span>
+                    </label>
+                    <select name="member_id" id="member_id" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="">Seleccionar miembro...</option>
+                        {% for member in available_members %}
+                        <option value="{{ member.id }}">{{ member.get_full_name }} - {{ member.get_status_display }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="role" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Rol en el Ministerio <span class="text-red-500">*</span>
+                    </label>
+                    <select name="role" id="role" required
+                            class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                        <option value="member">Miembro</option>
+                        <option value="leader">Líder</option>
+                        <option value="co_leader">Co-Líder</option>
+                        <option value="volunteer">Voluntario</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="start_date" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Fecha de Inicio
+                    </label>
+                    <input type="date" name="start_date" id="start_date"
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                    <p class="mt-1 text-xs text-gray">Formato: dd/mm/aaaa • Si no se especifica, se usará la fecha actual</p>
+                </div>
+                
+                <div>
+                    <label for="notes" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Notas
+                    </label>
+                    <textarea name="notes" id="notes" rows="3"
+                              class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                              placeholder="Notas adicionales..."></textarea>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <a href="#" class="px-4 py-2 text-sm text-gray hover:text-black">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+                    <i class="fa-solid fa-plus mr-2"></i>Agregar Miembro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

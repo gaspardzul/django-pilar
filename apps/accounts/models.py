@@ -29,3 +29,27 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+class OrganizationMembership(models.Model):
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('admin', 'Admin'),
+        ('member', 'Member'),
+    ]
+    
+    user = models.ForeignKey('CustomUser', on_delete=models.CASCADE, related_name='memberships')
+    organization_schema = models.CharField(max_length=63)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
+    is_active = models.BooleanField(default=True)
+    joined_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'organization_schema')
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+            models.Index(fields=['organization_schema']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.organization_schema} ({self.role})"

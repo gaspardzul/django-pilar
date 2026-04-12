@@ -1,0 +1,97 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Familia | Gestión de Iglesia{% endblock %}
+{% block page_title %}{{ action }} Familia{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 text-sm text-gray mb-2">
+        <a href="{% url 'dashboard:families_list' %}" class="hover:text-black">Familias</a>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+        <span class="text-black">{{ action }} Familia</span>
+    </div>
+    <h2 class="text-xl font-medium text-black">{{ action }} Familia</h2>
+    <p class="mt-1 text-sm text-gray">Completa la información de la familia a continuación</p>
+</div>
+
+<!-- Form -->
+<div class="max-w-3xl">
+    <form method="POST" class="bg-white border border-light-gray rounded">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="px-6 py-4 border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Información Básica</h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="family_name" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Nombre de la Familia <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="family_name" id="family_name" required
+                       value="{% if family %}{{ family.family_name }}{% endif %}"
+                       class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                       placeholder="Ej: Familia García">
+                <p class="mt-1 text-xs text-gray">Generalmente el apellido de la familia</p>
+            </div>
+            
+            <div>
+                <label for="address" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Dirección
+                </label>
+                <textarea name="address" id="address" rows="3"
+                          class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                          placeholder="Dirección completa de la familia...">{% if family %}{{ family.address }}{% endif %}</textarea>
+            </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="px-6 py-4 border-t border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Contacto Principal</h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="primary_contact" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Miembro de Contacto
+                </label>
+                <select name="primary_contact" id="primary_contact"
+                        class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                    <option value="">Seleccionar contacto (opcional)</option>
+                    {% for member in members %}
+                    <option value="{{ member.id }}" {% if family and family.primary_contact and family.primary_contact.id == member.id %}selected{% endif %}>
+                        {{ member.get_full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="mt-2 text-xs text-gray">Persona principal de contacto para esta familia</p>
+            </div>
+        </div>
+        
+        <!-- Notes -->
+        <div class="px-6 py-4 border-t border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Notas Adicionales</h3>
+        </div>
+        <div class="p-6">
+            <div>
+                <label for="notes" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Notas
+                </label>
+                <textarea name="notes" id="notes" rows="4"
+                          class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                          placeholder="Notas adicionales sobre esta familia...">{% if family %}{{ family.notes }}{% endif %}</textarea>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="px-6 py-4 border-t border-light-gray bg-[#fafafa] flex items-center justify-between">
+            <a href="{% url 'dashboard:families_list' %}" class="text-sm text-gray hover:text-black">
+                Cancelar
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+                <i class="fa-solid fa-check mr-2"></i>{{ action }} Familia
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

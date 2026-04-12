@@ -1,0 +1,138 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Miembros | Gestión de Iglesia{% endblock %}
+{% block page_title %}Miembros{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Miembros de la Iglesia</h2>
+        <p class="mt-1 text-sm text-gray">Administra los miembros de tu iglesia y su información</p>
+    </div>
+    <a href="{% url 'dashboard:member_create' %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Agregar Miembro
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="mb-6 bg-white border border-light-gray rounded p-4">
+    <form method="GET" class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-[200px]">
+            <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar miembros..." 
+                   class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+        </div>
+        <div class="min-w-[150px]">
+            <select name="status" class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+                <option value="">Todos los Estados</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Activo</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactivo</option>
+                <option value="visitor" {% if status_filter == 'visitor' %}selected{% endif %}>Visitante</option>
+                <option value="transferred" {% if status_filter == 'transferred' %}selected{% endif %}>Transferido</option>
+            </select>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+            <i class="fa-solid fa-filter mr-2"></i>Filtrar
+        </button>
+        {% if search_query or status_filter %}
+        <a href="{% url 'dashboard:members_list' %}" class="px-4 py-2 border border-light-gray text-sm hover:bg-[#fafafa] transition-colors">
+            Limpiar
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Stats -->
+<div class="mb-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Total Activos</p>
+        <p class="mt-2 text-2xl font-medium text-black">{{ total_members }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Resultados</p>
+        <p class="mt-2 text-2xl font-medium text-black">{{ members|length }}</p>
+    </div>
+</div>
+
+<!-- Members List -->
+<div class="bg-white border border-light-gray rounded">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="border-b border-light-gray bg-[#fafafa]">
+                <tr>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Nombre</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Contacto</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Estado</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Fecha de Ingreso</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Edad</th>
+                    <th class="px-5 py-3 text-right text-xs font-medium text-gray uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-light-gray">
+                {% if members %}
+                    {% for member in members %}
+                    <tr class="hover:bg-[#fafafa] transition-colors">
+                        <td class="px-5 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-[#fafafa] rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-user text-gray text-xs"></i>
+                                </div>
+                                <div>
+                                    <a href="{% url 'dashboard:member_detail' member.id %}" class="text-sm font-medium text-black hover:underline">
+                                        {{ member.get_full_name }}
+                                    </a>
+                                    {% if member.gender %}
+                                    <p class="text-xs text-gray">{{ member.get_gender_display }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-5 py-4">
+                            {% if member.email %}
+                            <p class="text-sm text-gray">{{ member.email }}</p>
+                            {% endif %}
+                            {% if member.phone %}
+                            <p class="text-xs text-gray">{{ member.phone }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4">
+                            <span class="px-2 py-1 text-xs rounded
+                                {% if member.status == 'active' %}bg-green-100 text-green-800
+                                {% elif member.status == 'inactive' %}bg-gray-100 text-gray-800
+                                {% elif member.status == 'visitor' %}bg-blue-100 text-blue-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ member.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-4 text-sm text-gray">
+                            {{ member.join_date|date:"M d, Y" }}
+                        </td>
+                        <td class="px-5 py-4 text-sm text-gray">
+                            {% if member.get_age %}{{ member.get_age }} años{% else %}-{% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-right">
+                            <a href="{% url 'dashboard:member_detail' member.id %}" class="text-xs text-gray hover:text-black mr-3">
+                                <i class="fa-solid fa-eye"></i>
+                            </a>
+                            <a href="{% url 'dashboard:member_edit' member.id %}" class="text-xs text-gray hover:text-black">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="px-5 py-12 text-center">
+                            <i class="fa-solid fa-users text-gray text-3xl mb-3"></i>
+                            <p class="text-sm text-gray mb-2">No se encontraron miembros</p>
+                            <a href="{% url 'dashboard:member_create' %}" class="text-xs text-black hover:underline">
+                                Agregar tu primer miembro &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

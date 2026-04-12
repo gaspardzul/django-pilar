@@ -33,12 +33,21 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-change-me')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost').split(',')
+
+# For development, allow all subdomains
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
 
 
 # Application definition
 
-INSTALLED_APPS = [
+# Shared apps - available to all tenants
+SHARED_APPS = [
+    'django_tenants',
+    'apps.organizations',
+    'apps.accounts',
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,26 +55,44 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-
-    # Third party apps
+    
+    # Auth apps (need to be shared for signup/login in public schema)
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+]
+
+# Tenant apps - isolated per tenant schema
+TENANT_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    
+    # Third party apps
     'tailwind',
     'django_htmx',
     'crispy_forms',
     'crispy_tailwind',
 
     # Local apps
-    'apps.accounts',
     'apps.landing',
     'apps.dashboard',
     'apps.subscriptions',
 ]
 
+INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+
+# Django-tenants configuration
+TENANT_MODEL = 'organizations.Organization'
+TENANT_DOMAIN_MODEL = 'organizations.Domain'
+
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
 MIDDLEWARE = [
+    'django_tenants.middleware.main.TenantMainMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -80,6 +107,10 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core.urls'
+
+# Tenant URLs configuration
+PUBLIC_SCHEMA_URLCONF = 'core.urls'
+ROOT_URLCONF = 'core.urls_tenants'
 
 TEMPLATES = [
     {
@@ -111,6 +142,14 @@ DATABASES = {
     )
 }
 
+# Override ENGINE for django-tenants when using PostgreSQL
+if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
+    DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
+
+DATABASE_ROUTERS = (
+    'django_tenants.routers.TenantSyncRouter',
+)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -134,9 +173,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-mx'  # Español de México
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Mexico_City'  # Zona horaria de México
 
 USE_I18N = True
 
@@ -169,6 +208,10 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_ADAPTER = 'apps.accounts.adapter.CustomAccountAdapter'
+ACCOUNT_FORMS = {
+    'signup': 'apps.accounts.forms.CustomSignupForm',
+}
 
 # Email configuration
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')

@@ -1,0 +1,100 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Ministerios | Gestión de Iglesia{% endblock %}
+{% block page_title %}Ministerios{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Ministerios de la Iglesia</h2>
+        <p class="mt-1 text-sm text-gray">Administra los ministerios y sus miembros</p>
+    </div>
+    <a href="{% url 'dashboard:ministry_create' %}" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Agregar Ministerio
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="mb-6 bg-white border border-light-gray rounded p-4">
+    <form method="GET" class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-[200px]">
+            <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar ministerios..." 
+                   class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+        </div>
+        <div class="min-w-[150px]">
+            <select name="active" class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+                <option value="">Todos los Estados</option>
+                <option value="true" {% if active_filter == 'true' %}selected{% endif %}>Activo</option>
+                <option value="false" {% if active_filter == 'false' %}selected{% endif %}>Inactivo</option>
+            </select>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+            <i class="fa-solid fa-filter mr-2"></i>Filtrar
+        </button>
+        {% if search_query or active_filter %}
+        <a href="{% url 'dashboard:ministries_list' %}" class="px-4 py-2 border border-light-gray text-sm hover:bg-[#fafafa] transition-colors">
+            Limpiar
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Stats -->
+<div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Total Activos</p>
+        <p class="mt-2 text-2xl font-medium text-black">{{ total_ministries }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Resultados</p>
+        <p class="mt-2 text-2xl font-medium text-black">{{ ministries|length }}</p>
+    </div>
+</div>
+
+<!-- Ministries Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% if ministries %}
+        {% for ministry in ministries %}
+        <a href="{% url 'dashboard:ministry_detail' ministry.id %}" class="bg-white border border-light-gray rounded p-6 hover:border-black transition-colors group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 bg-black rounded flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-hands-praying text-white text-lg"></i>
+                </div>
+                <span class="px-2 py-1 text-xs rounded {% if ministry.active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {% if ministry.active %}Activo{% else %}Inactivo{% endif %}
+                </span>
+            </div>
+            
+            <h3 class="text-lg font-medium text-black group-hover:underline">{{ ministry.name }}</h3>
+            
+            {% if ministry.description %}
+            <p class="mt-2 text-sm text-gray line-clamp-2">{{ ministry.description }}</p>
+            {% endif %}
+            
+            <div class="mt-4 pt-4 border-t border-light-gray space-y-2">
+                {% if ministry.leader %}
+                <div class="flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-user text-gray text-xs w-4"></i>
+                    <span class="text-gray">Líder: <span class="text-black">{{ ministry.leader.get_full_name }}</span></span>
+                </div>
+                {% endif %}
+                
+                <div class="flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-users text-gray text-xs w-4"></i>
+                    <span class="text-gray">{{ ministry.get_active_members.count }} miembros activos</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="col-span-full bg-white border border-light-gray rounded p-12 text-center">
+            <i class="fa-solid fa-hands-praying text-gray text-3xl mb-3"></i>
+            <p class="text-sm text-gray mb-2">No se encontraron ministerios</p>
+            <a href="{% url 'dashboard:ministry_create' %}" class="text-xs text-black hover:underline">
+                Agregar tu primer ministerio &rarr;
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

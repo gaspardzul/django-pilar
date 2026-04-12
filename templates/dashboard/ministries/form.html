@@ -1,0 +1,97 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Ministerio | Gestión de Iglesia{% endblock %}
+{% block page_title %}{{ action }} Ministerio{% endblock %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 text-sm text-gray mb-2">
+        <a href="{% url 'dashboard:ministries_list' %}" class="hover:text-black">Ministerios</a>
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+        <span class="text-black">{{ action }} Ministerio</span>
+    </div>
+    <h2 class="text-xl font-medium text-black">{{ action }} Ministerio</h2>
+    <p class="mt-1 text-sm text-gray">Completa la información del ministerio a continuación</p>
+</div>
+
+<!-- Form -->
+<div class="max-w-3xl">
+    <form method="POST" class="bg-white border border-light-gray rounded">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="px-6 py-4 border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Información Básica</h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="name" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Nombre del Ministerio <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="name" id="name" required
+                       value="{% if ministry %}{{ ministry.name }}{% endif %}"
+                       class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                       placeholder="Ej: Ministerio de Alabanza">
+            </div>
+            
+            <div>
+                <label for="description" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Descripción
+                </label>
+                <textarea name="description" id="description" rows="4"
+                          class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                          placeholder="Describe el propósito y actividades del ministerio...">{% if ministry %}{{ ministry.description }}{% endif %}</textarea>
+            </div>
+        </div>
+        
+        <!-- Leadership -->
+        <div class="px-6 py-4 border-t border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Liderazgo</h3>
+        </div>
+        <div class="p-6 space-y-6">
+            <div>
+                <label for="leader" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    Líder Principal
+                </label>
+                <select name="leader" id="leader"
+                        class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                    <option value="">Seleccionar líder (opcional)</option>
+                    {% for member in members %}
+                    <option value="{{ member.id }}" {% if ministry and ministry.leader and ministry.leader.id == member.id %}selected{% endif %}>
+                        {{ member.get_full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="mt-2 text-xs text-gray">Puedes asignar un líder ahora o más tarde</p>
+            </div>
+        </div>
+        
+        <!-- Status -->
+        <div class="px-6 py-4 border-t border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Estado</h3>
+        </div>
+        <div class="p-6">
+            <div class="flex items-center gap-3">
+                <input type="checkbox" name="active" id="active" 
+                       {% if not ministry or ministry.active %}checked{% endif %}
+                       class="w-5 h-5 border-2 border-black focus:ring-0 focus:ring-offset-0">
+                <label for="active" class="text-sm text-black">
+                    Ministerio activo
+                </label>
+            </div>
+            <p class="mt-2 text-xs text-gray ml-8">Los ministerios inactivos no aparecerán en las listas principales</p>
+        </div>
+        
+        <!-- Actions -->
+        <div class="px-6 py-4 border-t border-light-gray bg-[#fafafa] flex items-center justify-between">
+            <a href="{% url 'dashboard:ministries_list' %}" class="text-sm text-gray hover:text-black">
+                Cancelar
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-black text-white text-sm hover:bg-dark-gray transition-colors">
+                <i class="fa-solid fa-check mr-2"></i>{{ action }} Ministerio
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,6 +1,6 @@
-# Django SaaS Boilerplate
+# Pilar Software
 
-The open-source Django starter kit for building SaaS applications. Auth, payments, dashboard, and deployment — all wired up.
+Sistema de gestión integral para iglesias. Administra miembros, ministerios, familias y eventos de forma sencilla y segura.
 
 <div align="center">
   <img src="https://img.shields.io/badge/Django-6.0-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django"/>
