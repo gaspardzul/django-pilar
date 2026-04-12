@@ -106,6 +106,53 @@
             </div>
         </div>
 
+        <!-- Baptism Information -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Información de Bautismo</h3>
+            </div>
+            <div class="p-6">
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Estado</dt>
+                        <dd class="text-sm">
+                            {% if member.is_baptized %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded">
+                                    <i class="fa-solid fa-check-circle"></i>
+                                    Bautizado
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-800 rounded">
+                                    <i class="fa-solid fa-circle"></i>
+                                    No bautizado
+                                </span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    {% if member.is_baptized %}
+                        {% if member.baptism_date %}
+                        <div>
+                            <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Fecha de Bautismo</dt>
+                            <dd class="text-sm text-black">{{ member.baptism_date|date:"F d, Y" }}</dd>
+                        </div>
+                        {% endif %}
+                        {% if member.baptism_place %}
+                        <div>
+                            <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Lugar</dt>
+                            <dd class="text-sm text-black">{{ member.baptism_place }}</dd>
+                        </div>
+                        {% endif %}
+                        {% if member.baptized_by %}
+                        <div>
+                            <dt class="text-xs font-medium text-gray uppercase tracking-wider mb-1">Bautizado Por</dt>
+                            <dd class="text-sm text-black">{{ member.baptized_by }}</dd>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
         <!-- Ministries -->
         <div class="bg-white border border-light-gray rounded">
             <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">

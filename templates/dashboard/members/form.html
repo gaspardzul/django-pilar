@@ -131,7 +131,55 @@
                 </div>
             </div>
             
-            <div>
+            <!-- Baptism Information -->
+            <div class="col-span-2 border-t border-light-gray pt-6 mt-6">
+                <h3 class="text-sm font-medium text-black mb-4">Información de Bautismo</h3>
+            </div>
+            
+            <div class="col-span-2">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="is_baptized" id="is_baptized" value="true"
+                           {% if member.is_baptized %}checked{% endif %}
+                           class="w-4 h-4 border-2 border-black focus:ring-0 focus:ring-offset-0 text-black"
+                           onchange="toggleBaptismFields(this.checked)">
+                    <span class="text-sm text-black">¿Miembro bautizado?</span>
+                    <span class="text-xs text-gray">Al guardar se habilitarán los campos de bautismo</span>
+                </label>
+            </div>
+            <div class="col-span-2 border-t border-light-gray pt-6 mt-6"></div>
+            
+            <div id="baptism-fields" class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6" style="display: {% if member.is_baptized %}grid{% else %}none{% endif %}">
+                <div>
+                    <label for="baptism_date" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Fecha de Bautismo
+                    </label>
+                    <input type="date" name="baptism_date" id="baptism_date"
+                           value="{% if member.baptism_date %}{{ member.baptism_date|date:'Y-m-d' }}{% endif %}"
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none">
+                </div>
+                
+                <div>
+                    <label for="baptism_place" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Lugar de Bautismo
+                    </label>
+                    <input type="text" name="baptism_place" id="baptism_place"
+                           value="{% if member %}{{ member.baptism_place }}{% endif %}"
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                           placeholder="Ej: Iglesia Central">
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label for="baptized_by" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                        Bautizado Por
+                    </label>
+                    <input type="text" name="baptized_by" id="baptized_by"
+                           value="{% if member %}{{ member.baptized_by }}{% endif %}"
+                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
+                           placeholder="Ej: Pastor Juan Pérez">
+                </div>
+            </div>
+            
+            <div class="col-span-2">
                 <label for="notes" class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
                     Notas
                 </label>
@@ -141,14 +189,48 @@
             </div>
         </div>
         
+        <script>
+        function toggleBaptismFields(show) {
+            const fields = document.getElementById('baptism-fields');
+            if (show) {
+                fields.style.display = 'grid';
+                // Add smooth transition
+                setTimeout(() => {
+                    fields.style.opacity = '1';
+                }, 10);
+            } else {
+                fields.style.opacity = '0';
+                setTimeout(() => {
+                    fields.style.display = 'none';
+                }, 200);
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkbox = document.getElementById('is_baptized');
+            const fields = document.getElementById('baptism-fields');
+            
+            // Set initial state
+            fields.style.transition = 'opacity 0.2s ease-in-out';
+            fields.style.opacity = checkbox.checked ? '1' : '0';
+            fields.style.display = checkbox.checked ? 'grid' : 'none';
+        });
+        </script>
+        
         <!-- Acciones -->
         <div class="px-6 py-4 border-t border-light-gray bg-[#fafafa] flex items-center justify-between">
             <a href="{% url 'dashboard:members_list' %}" class="text-sm text-gray hover:text-black">
                 Cancelar
             </a>
-            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
-                <i class="fa-solid fa-check mr-2"></i>{{ action }} Miembro
-            </button>
+            <div class="flex items-center gap-3">
+                <button type="submit" name="action" value="save_and_return" class="px-6 py-2.5 bg-white border border-black text-black text-sm hover:bg-gray-50 transition-colors">
+                    <i class="fa-solid fa-check mr-2"></i>Guardar y Regresar
+                </button>
+                <button type="submit" name="action" value="save_and_continue" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                    <i class="fa-solid fa-save mr-2"></i>Guardar y Continuar Editando
+                </button>
+            </div>
         </div>
     </form>
 </div>

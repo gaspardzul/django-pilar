@@ -29,6 +29,13 @@ class Member(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     photo = models.ImageField(upload_to='members/', blank=True, null=True)
     notes = models.TextField(blank=True)
+    
+    # Baptism information
+    is_baptized = models.BooleanField(default=False, verbose_name='Bautizado')
+    baptism_date = models.DateField(null=True, blank=True, verbose_name='Fecha de bautismo')
+    baptism_place = models.CharField(max_length=200, blank=True, verbose_name='Lugar de bautismo')
+    baptized_by = models.CharField(max_length=200, blank=True, verbose_name='Bautizado por')
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

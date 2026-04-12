@@ -201,27 +201,79 @@ def start_trial(request):
 @login_required
 @require_http_methods(['GET'])
 def members_list(request):
-    members = Member.objects.all().order_by('last_name', 'first_name')
+    members = Member.objects.all().select_related().prefetch_related('ministry_memberships__ministry')
+    
+    # Search query
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        members = members.filter(
+            models.Q(first_name__icontains=search_query) |
+            models.Q(last_name__icontains=search_query) |
+            models.Q(email__icontains=search_query) |
+            models.Q(phone__icontains=search_query)
+        )
     
     # Filter by status
     status_filter = request.GET.get('status')
     if status_filter:
         members = members.filter(status=status_filter)
     
-    # Search
-    search_query = request.GET.get('q')
-    if search_query:
-        members = members.filter(
-            models.Q(first_name__icontains=search_query) |
-            models.Q(last_name__icontains=search_query) |
-            models.Q(email__icontains=search_query)
-        )
+    # Filter by gender
+    gender_filter = request.GET.get('gender')
+    if gender_filter:
+        members = members.filter(gender=gender_filter)
+    
+    # Filter by baptism status
+    baptism_filter = request.GET.get('baptism')
+    if baptism_filter == 'baptized':
+        members = members.filter(is_baptized=True)
+    elif baptism_filter == 'not_baptized':
+        members = members.filter(is_baptized=False)
+    
+    # Filter by ministry
+    ministry_filter = request.GET.get('ministry')
+    if ministry_filter:
+        members = members.filter(ministry_memberships__ministry_id=ministry_filter, ministry_memberships__end_date__isnull=True).distinct()
+    
+    # Filter by age range
+    age_min = request.GET.get('age_min')
+    age_max = request.GET.get('age_max')
+    if age_min or age_max:
+        from datetime import date
+        today = date.today()
+        if age_max:
+            # Max age means born after this date
+            date_max = date(today.year - int(age_max), today.month, today.day)
+            members = members.filter(date_of_birth__gte=date_max)
+        if age_min:
+            # Min age means born before this date
+            date_min = date(today.year - int(age_min), today.month, today.day)
+            members = members.filter(date_of_birth__lte=date_min)
+    
+    # Order by
+    order_by = request.GET.get('order_by', 'name')
+    if order_by == 'name':
+        members = members.order_by('last_name', 'first_name')
+    elif order_by == 'join_date':
+        members = members.order_by('-join_date')
+    elif order_by == 'baptism_date':
+        members = members.order_by('-baptism_date')
+    
+    # Get all ministries for filter dropdown
+    ministries = Ministry.objects.filter(active=True).order_by('name')
     
     context = {
         'members': members,
         'total_members': Member.objects.filter(status='active').count(),
-        'status_filter': status_filter,
+        'ministries': ministries,
         'search_query': search_query,
+        'status_filter': status_filter,
+        'gender_filter': gender_filter,
+        'baptism_filter': baptism_filter,
+        'ministry_filter': ministry_filter,
+        'age_min': age_min,
+        'age_max': age_max,
+        'order_by': order_by,
     }
     return render(request, 'dashboard/members/list.html', context)
 
@@ -267,12 +319,22 @@ def member_create(request):
             email=request.POST.get('email', ''),
             phone=request.POST.get('phone', ''),
             address=request.POST.get('address', ''),
-            join_date=request.POST.get('join_date') or None,
+            join_date=request.POST.get('join_date') or timezone.now().date(),
             status=request.POST.get('status', 'active'),
             notes=request.POST.get('notes', ''),
+            is_baptized=request.POST.get('is_baptized') == 'true',
+            baptism_date=request.POST.get('baptism_date') or None,
+            baptism_place=request.POST.get('baptism_place', ''),
+            baptized_by=request.POST.get('baptized_by', ''),
         )
-        messages.success(request, f'Member {member.get_full_name()} created successfully.')
-        return redirect('dashboard:member_detail', member_id=member.id)
+        messages.success(request, f'Miembro {member.get_full_name()} creado exitosamente.')
+        
+        # Check which action was clicked
+        action = request.POST.get('action', 'save_and_return')
+        if action == 'save_and_continue':
+            return redirect('dashboard:member_edit', member_id=member.id)
+        else:
+            return redirect('dashboard:members_list')
     
     return render(request, 'dashboard/members/form.html', {'action': 'Create'})
 
@@ -290,13 +352,23 @@ def member_edit(request, member_id):
         member.email = request.POST.get('email', '')
         member.phone = request.POST.get('phone', '')
         member.address = request.POST.get('address', '')
-        member.join_date = request.POST.get('join_date') or None
+        member.join_date = request.POST.get('join_date') or timezone.now().date()
         member.status = request.POST.get('status', 'active')
         member.notes = request.POST.get('notes', '')
+        member.is_baptized = request.POST.get('is_baptized') == 'true'
+        member.baptism_date = request.POST.get('baptism_date') or None
+        member.baptism_place = request.POST.get('baptism_place', '')
+        member.baptized_by = request.POST.get('baptized_by', '')
         member.save()
         
-        messages.success(request, f'Member {member.get_full_name()} updated successfully.')
-        return redirect('dashboard:member_detail', member_id=member.id)
+        messages.success(request, f'Miembro {member.get_full_name()} actualizado exitosamente.')
+        
+        # Check which action was clicked
+        action = request.POST.get('action', 'save_and_return')
+        if action == 'save_and_continue':
+            return redirect('dashboard:member_edit', member_id=member.id)
+        else:
+            return redirect('dashboard:members_list')
     
     context = {'member': member, 'action': 'Edit'}
     return render(request, 'dashboard/members/form.html', context)

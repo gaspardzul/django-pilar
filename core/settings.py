@@ -237,7 +237,8 @@ STRIPE_PRICE_ID = os.getenv('STRIPE_PRICE_ID', '')
 # https://docs.djangoproject.com/en/6.0/ref/middleware/#content-security-policy
 SECURE_CSP = {
     "default-src": [CSP.SELF],
-    "script-src": [CSP.SELF, CSP.NONCE, "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+    "script-src": [CSP.SELF, CSP.NONCE, CSP.UNSAFE_INLINE, "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+    "script-src-attr": [CSP.UNSAFE_INLINE],
     "style-src": [CSP.SELF, CSP.UNSAFE_INLINE, "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
     "font-src": [CSP.SELF, "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
     "img-src": [CSP.SELF, "https:", "data:"],

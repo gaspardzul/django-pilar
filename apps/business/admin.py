@@ -23,8 +23,8 @@ class FamilyMemberInline(admin.TabularInline):
 # Member Admin
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
-    list_display = ('get_full_name', 'email', 'phone', 'status', 'join_date', 'get_age')
-    list_filter = ('status', 'gender', 'join_date')
+    list_display = ('get_full_name', 'email', 'phone', 'status', 'is_baptized', 'baptism_date', 'join_date', 'get_age')
+    list_filter = ('status', 'gender', 'is_baptized', 'join_date', 'baptism_date')
     search_fields = ('first_name', 'last_name', 'email', 'phone')
     date_hierarchy = 'join_date'
     inlines = [MemberMinistryInline, FamilyMemberInline]
@@ -35,6 +35,9 @@ class MemberAdmin(admin.ModelAdmin):
         }),
         ('Contact Information', {
             'fields': ('email', 'phone', 'address')
+        }),
+        ('Baptism Information', {
+            'fields': ('is_baptized', 'baptism_date', 'baptism_place', 'baptized_by')
         }),
         ('Membership', {
             'fields': ('join_date', 'status', 'notes')
