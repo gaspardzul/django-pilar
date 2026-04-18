@@ -17,6 +17,9 @@ urlpatterns = [
     # Members
     path('members/', views.members_list, name='members_list'),
     path('members/create/', views.member_create, name='member_create'),
+    path('members/export/', views.members_export, name='members_export'),
+    path('members/import/', views.members_import, name='members_import'),
+    path('members/download-template/', views.members_download_template, name='members_download_template'),
     path('members/<uuid:member_id>/', views.member_detail, name='member_detail'),
     path('members/<uuid:member_id>/edit/', views.member_edit, name='member_edit'),
     path('members/<uuid:member_id>/add-to-ministry/', views.member_add_to_ministry, name='member_add_to_ministry'),
@@ -25,6 +28,9 @@ urlpatterns = [
     # Ministries
     path('ministries/', views.ministries_list, name='ministries_list'),
     path('ministries/create/', views.ministry_create, name='ministry_create'),
+    path('ministries/export/', views.ministries_export, name='ministries_export'),
+    path('ministries/import/', views.ministries_import, name='ministries_import'),
+    path('ministries/download-template/', views.ministries_download_template, name='ministries_download_template'),
     path('ministries/<uuid:ministry_id>/', views.ministry_detail, name='ministry_detail'),
     path('ministries/<uuid:ministry_id>/edit/', views.ministry_edit, name='ministry_edit'),
     path('ministries/<uuid:ministry_id>/add-member/', views.ministry_add_member, name='ministry_add_member'),
@@ -33,6 +39,9 @@ urlpatterns = [
     # Families
     path('families/', views.families_list, name='families_list'),
     path('families/create/', views.family_create, name='family_create'),
+    path('families/export/', views.families_export, name='families_export'),
+    path('families/import/', views.families_import, name='families_import'),
+    path('families/download-template/', views.families_download_template, name='families_download_template'),
     path('families/<uuid:family_id>/', views.family_detail, name='family_detail'),
     path('families/<uuid:family_id>/edit/', views.family_edit, name='family_edit'),
     path('families/<uuid:family_id>/add-member/', views.family_add_member, name='family_add_member'),
@@ -41,6 +50,9 @@ urlpatterns = [
     # Events
     path('events/', views.events_list, name='events_list'),
     path('events/create/', views.event_create, name='event_create'),
+    path('events/export/', views.events_export, name='events_export'),
+    path('events/import/', views.events_import, name='events_import'),
+    path('events/download-template/', views.events_download_template, name='events_download_template'),
     path('events/<uuid:event_id>/', views.event_detail, name='event_detail'),
     path('events/<uuid:event_id>/edit/', views.event_edit, name='event_edit'),
     path('events/<uuid:event_id>/add-work-group/', views.event_add_work_group, name='event_add_work_group'),

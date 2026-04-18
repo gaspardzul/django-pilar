@@ -5,14 +5,24 @@
 
 {% block dashboard_content %}
 <!-- Header -->
-<div class="mb-8 flex items-center justify-between">
-    <div>
-        <h2 class="text-xl font-medium text-black">Eventos de la Iglesia</h2>
-        <p class="mt-1 text-sm text-gray">Administra los eventos y sus grupos de trabajo</p>
+<div class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h2 class="text-xl font-medium text-black">Eventos de la Iglesia</h2>
+            <p class="mt-1 text-sm text-gray">Administra los eventos y sus grupos de trabajo</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'dashboard:events_import' %}" class="px-4 py-2 bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors">
+                <i class="fa-solid fa-file-import mr-2"></i>Importar
+            </a>
+            <a href="{% url 'dashboard:events_export' %}?{{ request.GET.urlencode }}" class="px-4 py-2 bg-green-600 text-white text-sm hover:bg-green-700 transition-colors">
+                <i class="fa-solid fa-file-excel mr-2"></i>Exportar
+            </a>
+            <a href="{% url 'dashboard:event_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                <i class="fa-solid fa-plus mr-2"></i>Agregar Evento
+            </a>
+        </div>
     </div>
-    <a href="{% url 'dashboard:event_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
-        <i class="fa-solid fa-plus mr-2"></i>Agregar Evento
-    </a>
 </div>
 
 <!-- Filters -->

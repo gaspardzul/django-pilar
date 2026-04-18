@@ -1040,3 +1040,1108 @@ def event_remove_expense(request, event_id, expense_id):
     
     messages.success(request, f'Egreso de ${amount} eliminado.')
     return redirect('dashboard:event_detail', event_id=event_id)
+
+
+# Members Import/Export Views
+@login_required
+@require_http_methods(['GET'])
+def members_export(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Miembros"
+    
+    # Define headers
+    headers = [
+        'ID', 'Nombre', 'Apellido', 'Fecha de Nacimiento', 'Género', 
+        'Email', 'Teléfono', 'Dirección', 'Fecha de Ingreso', 'Estado',
+        'Bautizado', 'Fecha de Bautismo', 'Lugar de Bautismo', 'Bautizado Por', 'Notas'
+    ]
+    
+    # Style headers
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Get members based on filters (same as list view)
+    members = Member.objects.all()
+    
+    # Apply filters from request
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        members = members.filter(
+            models.Q(first_name__icontains=search_query) |
+            models.Q(last_name__icontains=search_query) |
+            models.Q(email__icontains=search_query) |
+            models.Q(phone__icontains=search_query)
+        )
+    
+    status_filter = request.GET.get('status')
+    if status_filter:
+        members = members.filter(status=status_filter)
+    
+    gender_filter = request.GET.get('gender')
+    if gender_filter:
+        members = members.filter(gender=gender_filter)
+    
+    baptism_filter = request.GET.get('baptism')
+    if baptism_filter == 'baptized':
+        members = members.filter(is_baptized=True)
+    elif baptism_filter == 'not_baptized':
+        members = members.filter(is_baptized=False)
+    
+    ministry_filter = request.GET.get('ministry')
+    if ministry_filter:
+        members = members.filter(
+            ministry_memberships__ministry_id=ministry_filter,
+            ministry_memberships__end_date__isnull=True
+        ).distinct()
+    
+    # Write data
+    for row_num, member in enumerate(members.order_by('last_name', 'first_name'), 2):
+        ws.cell(row=row_num, column=1, value=str(member.id))
+        ws.cell(row=row_num, column=2, value=member.first_name)
+        ws.cell(row=row_num, column=3, value=member.last_name)
+        ws.cell(row=row_num, column=4, value=member.date_of_birth.strftime('%Y-%m-%d') if member.date_of_birth else '')
+        ws.cell(row=row_num, column=5, value=member.get_gender_display() if member.gender else '')
+        ws.cell(row=row_num, column=6, value=member.email)
+        ws.cell(row=row_num, column=7, value=member.phone)
+        ws.cell(row=row_num, column=8, value=member.address)
+        ws.cell(row=row_num, column=9, value=member.join_date.strftime('%Y-%m-%d') if member.join_date else '')
+        ws.cell(row=row_num, column=10, value=member.get_status_display())
+        ws.cell(row=row_num, column=11, value='Sí' if member.is_baptized else 'No')
+        ws.cell(row=row_num, column=12, value=member.baptism_date.strftime('%Y-%m-%d') if member.baptism_date else '')
+        ws.cell(row=row_num, column=13, value=member.baptism_place)
+        ws.cell(row=row_num, column=14, value=member.baptized_by)
+        ws.cell(row=row_num, column=15, value=member.notes)
+    
+    # Adjust column widths
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    # Create response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=miembros_export.xlsx'
+    wb.save(response)
+    
+    return response
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def members_import(request):
+    if request.method == 'POST':
+        from openpyxl import load_workbook
+        from datetime import datetime
+        
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Por favor selecciona un archivo Excel.')
+            return redirect('dashboard:members_import')
+        
+        if not excel_file.name.endswith(('.xlsx', '.xls')):
+            messages.error(request, 'El archivo debe ser un archivo Excel (.xlsx o .xls).')
+            return redirect('dashboard:members_import')
+        
+        try:
+            wb = load_workbook(excel_file)
+            ws = wb.active
+            
+            created_count = 0
+            updated_count = 0
+            error_count = 0
+            errors = []
+            
+            # Skip header row
+            for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                try:
+                    member_id = row[0]
+                    first_name = row[1]
+                    last_name = row[2]
+                    date_of_birth = row[3]
+                    gender = row[4]
+                    email = row[5] or ''
+                    phone = row[6] or ''
+                    address = row[7] or ''
+                    join_date = row[8]
+                    status = row[9]
+                    is_baptized = row[10]
+                    baptism_date = row[11]
+                    baptism_place = row[12] or ''
+                    baptized_by = row[13] or ''
+                    notes = row[14] or ''
+                    
+                    # Validate required fields
+                    if not first_name or not last_name:
+                        errors.append(f'Fila {row_num}: Nombre y apellido son requeridos')
+                        error_count += 1
+                        continue
+                    
+                    # Parse dates
+                    if isinstance(date_of_birth, str) and date_of_birth:
+                        try:
+                            date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+                        except:
+                            date_of_birth = None
+                    
+                    if isinstance(join_date, str) and join_date:
+                        try:
+                            join_date = datetime.strptime(join_date, '%Y-%m-%d').date()
+                        except:
+                            join_date = timezone.now().date()
+                    elif not join_date:
+                        join_date = timezone.now().date()
+                    
+                    if isinstance(baptism_date, str) and baptism_date:
+                        try:
+                            baptism_date = datetime.strptime(baptism_date, '%Y-%m-%d').date()
+                        except:
+                            baptism_date = None
+                    
+                    # Parse gender
+                    gender_map = {
+                        'Masculino': 'M',
+                        'Femenino': 'F',
+                        'Otro': 'O',
+                        'M': 'M',
+                        'F': 'F',
+                        'O': 'O',
+                    }
+                    gender_code = gender_map.get(gender, '')
+                    
+                    # Parse status
+                    status_map = {
+                        'Activo': 'active',
+                        'Inactivo': 'inactive',
+                        'Visitante': 'visitor',
+                        'Transferido': 'transferred',
+                        'active': 'active',
+                        'inactive': 'inactive',
+                        'visitor': 'visitor',
+                        'transferred': 'transferred',
+                    }
+                    status_code = status_map.get(status, 'active')
+                    
+                    # Parse baptized
+                    is_baptized_bool = is_baptized in ['Sí', 'Si', 'Yes', 'True', True, 1, '1']
+                    
+                    # Check if updating or creating
+                    if member_id:
+                        try:
+                            member = Member.objects.get(id=member_id)
+                            # Update existing member
+                            member.first_name = first_name
+                            member.last_name = last_name
+                            member.date_of_birth = date_of_birth
+                            member.gender = gender_code
+                            member.email = email
+                            member.phone = phone
+                            member.address = address
+                            member.join_date = join_date
+                            member.status = status_code
+                            member.is_baptized = is_baptized_bool
+                            member.baptism_date = baptism_date
+                            member.baptism_place = baptism_place
+                            member.baptized_by = baptized_by
+                            member.notes = notes
+                            member.save()
+                            updated_count += 1
+                        except Member.DoesNotExist:
+                            # Create new member if ID doesn't exist
+                            Member.objects.create(
+                                first_name=first_name,
+                                last_name=last_name,
+                                date_of_birth=date_of_birth,
+                                gender=gender_code,
+                                email=email,
+                                phone=phone,
+                                address=address,
+                                join_date=join_date,
+                                status=status_code,
+                                is_baptized=is_baptized_bool,
+                                baptism_date=baptism_date,
+                                baptism_place=baptism_place,
+                                baptized_by=baptized_by,
+                                notes=notes,
+                            )
+                            created_count += 1
+                    else:
+                        # Create new member
+                        Member.objects.create(
+                            first_name=first_name,
+                            last_name=last_name,
+                            date_of_birth=date_of_birth,
+                            gender=gender_code,
+                            email=email,
+                            phone=phone,
+                            address=address,
+                            join_date=join_date,
+                            status=status_code,
+                            is_baptized=is_baptized_bool,
+                            baptism_date=baptism_date,
+                            baptism_place=baptism_place,
+                            baptized_by=baptized_by,
+                            notes=notes,
+                        )
+                        created_count += 1
+                
+                except Exception as e:
+                    errors.append(f'Fila {row_num}: {str(e)}')
+                    error_count += 1
+            
+            # Show results
+            if created_count > 0:
+                messages.success(request, f'{created_count} miembros creados exitosamente.')
+            if updated_count > 0:
+                messages.success(request, f'{updated_count} miembros actualizados exitosamente.')
+            if error_count > 0:
+                messages.warning(request, f'{error_count} filas con errores.')
+                for error in errors[:10]:  # Show first 10 errors
+                    messages.error(request, error)
+            
+            return redirect('dashboard:members_list')
+        
+        except Exception as e:
+            messages.error(request, f'Error al procesar el archivo: {str(e)}')
+            return redirect('dashboard:members_import')
+    
+    return render(request, 'dashboard/members/import.html')
+
+
+@login_required
+@require_http_methods(['GET'])
+def members_download_template(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Miembros"
+    
+    # Define headers
+    headers = [
+        'ID', 'Nombre', 'Apellido', 'Fecha de Nacimiento', 'Género', 
+        'Email', 'Teléfono', 'Dirección', 'Fecha de Ingreso', 'Estado',
+        'Bautizado', 'Fecha de Bautismo', 'Lugar de Bautismo', 'Bautizado Por', 'Notas'
+    ]
+    
+    # Style headers
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Add example row
+    example_data = [
+        '',  # ID (vacío para nuevos miembros)
+        'Juan',
+        'Pérez',
+        '1990-01-15',
+        'Masculino',
+        'juan.perez@example.com',
+        '555-1234',
+        'Calle Principal 123',
+        '2024-01-01',
+        'Activo',
+        'Sí',
+        '2024-02-15',
+        'Iglesia Central',
+        'Pastor López',
+        'Miembro activo del ministerio de jóvenes'
+    ]
+    
+    for col_num, value in enumerate(example_data, 1):
+        ws.cell(row=2, column=col_num, value=value)
+    
+    # Add instructions
+    ws.cell(row=4, column=1, value='INSTRUCCIONES:')
+    ws.cell(row=5, column=1, value='1. Deja el ID vacío para crear nuevos miembros')
+    ws.cell(row=6, column=1, value='2. Incluye el ID para actualizar miembros existentes')
+    ws.cell(row=7, column=1, value='3. Género: Masculino, Femenino, Otro')
+    ws.cell(row=8, column=1, value='4. Estado: Activo, Inactivo, Visitante, Transferido')
+    ws.cell(row=9, column=1, value='5. Bautizado: Sí o No')
+    ws.cell(row=10, column=1, value='6. Fechas en formato: YYYY-MM-DD (ej: 2024-01-15)')
+    
+    # Adjust column widths
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    # Create response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=plantilla_miembros.xlsx'
+    wb.save(response)
+    
+    return response
+
+
+# Ministries Import/Export Views
+@login_required
+@require_http_methods(['GET'])
+def ministries_export(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Ministerios"
+    
+    headers = ['ID', 'Nombre', 'Descripción', 'Líder (ID)', 'Líder (Nombre)', 'Activo']
+    
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    ministries = Ministry.objects.all()
+    
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        ministries = ministries.filter(name__icontains=search_query)
+    
+    active_filter = request.GET.get('active')
+    if active_filter == 'true':
+        ministries = ministries.filter(active=True)
+    elif active_filter == 'false':
+        ministries = ministries.filter(active=False)
+    
+    for row_num, ministry in enumerate(ministries.order_by('name'), 2):
+        ws.cell(row=row_num, column=1, value=str(ministry.id))
+        ws.cell(row=row_num, column=2, value=ministry.name)
+        ws.cell(row=row_num, column=3, value=ministry.description)
+        ws.cell(row=row_num, column=4, value=str(ministry.leader.id) if ministry.leader else '')
+        ws.cell(row=row_num, column=5, value=ministry.leader.get_full_name() if ministry.leader else '')
+        ws.cell(row=row_num, column=6, value='Sí' if ministry.active else 'No')
+    
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=ministerios_export.xlsx'
+    wb.save(response)
+    
+    return response
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def ministries_import(request):
+    if request.method == 'POST':
+        from openpyxl import load_workbook
+        
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Por favor selecciona un archivo Excel.')
+            return redirect('dashboard:ministries_import')
+        
+        if not excel_file.name.endswith(('.xlsx', '.xls')):
+            messages.error(request, 'El archivo debe ser un archivo Excel (.xlsx o .xls).')
+            return redirect('dashboard:ministries_import')
+        
+        try:
+            wb = load_workbook(excel_file)
+            ws = wb.active
+            
+            created_count = 0
+            updated_count = 0
+            error_count = 0
+            errors = []
+            
+            for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                try:
+                    ministry_id = row[0]
+                    name = row[1]
+                    description = row[2] or ''
+                    leader_id = row[3]
+                    active = row[5]
+                    
+                    if not name:
+                        errors.append(f'Fila {row_num}: Nombre es requerido')
+                        error_count += 1
+                        continue
+                    
+                    active_bool = active in ['Sí', 'Si', 'Yes', 'True', True, 1, '1']
+                    
+                    leader = None
+                    if leader_id:
+                        try:
+                            leader = Member.objects.get(id=leader_id)
+                        except Member.DoesNotExist:
+                            errors.append(f'Fila {row_num}: Líder con ID {leader_id} no existe')
+                    
+                    if ministry_id:
+                        try:
+                            ministry = Ministry.objects.get(id=ministry_id)
+                            ministry.name = name
+                            ministry.description = description
+                            ministry.leader = leader
+                            ministry.active = active_bool
+                            ministry.save()
+                            updated_count += 1
+                        except Ministry.DoesNotExist:
+                            Ministry.objects.create(
+                                name=name,
+                                description=description,
+                                leader=leader,
+                                active=active_bool,
+                            )
+                            created_count += 1
+                    else:
+                        Ministry.objects.create(
+                            name=name,
+                            description=description,
+                            leader=leader,
+                            active=active_bool,
+                        )
+                        created_count += 1
+                
+                except Exception as e:
+                    errors.append(f'Fila {row_num}: {str(e)}')
+                    error_count += 1
+            
+            if created_count > 0:
+                messages.success(request, f'{created_count} ministerios creados exitosamente.')
+            if updated_count > 0:
+                messages.success(request, f'{updated_count} ministerios actualizados exitosamente.')
+            if error_count > 0:
+                messages.warning(request, f'{error_count} filas con errores.')
+                for error in errors[:10]:
+                    messages.error(request, error)
+            
+            return redirect('dashboard:ministries_list')
+        
+        except Exception as e:
+            messages.error(request, f'Error al procesar el archivo: {str(e)}')
+            return redirect('dashboard:ministries_import')
+    
+    return render(request, 'dashboard/ministries/import.html')
+
+
+@login_required
+@require_http_methods(['GET'])
+def ministries_download_template(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Ministerios"
+    
+    headers = ['ID', 'Nombre', 'Descripción', 'Líder (ID)', 'Líder (Nombre)', 'Activo']
+    
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    example_data = ['', 'Ministerio de Jóvenes', 'Ministerio dedicado a los jóvenes de la iglesia', '', 'Juan Pérez', 'Sí']
+    
+    for col_num, value in enumerate(example_data, 1):
+        ws.cell(row=2, column=col_num, value=value)
+    
+    ws.cell(row=4, column=1, value='INSTRUCCIONES:')
+    ws.cell(row=5, column=1, value='1. Deja el ID vacío para crear nuevos ministerios')
+    ws.cell(row=6, column=1, value='2. Incluye el ID para actualizar ministerios existentes')
+    ws.cell(row=7, column=1, value='3. Líder (ID): ID del miembro líder (opcional)')
+    ws.cell(row=8, column=1, value='4. Activo: Sí o No')
+    
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=plantilla_ministerios.xlsx'
+    wb.save(response)
+    
+    return response
+
+
+# Families Import/Export Views
+@login_required
+@require_http_methods(['GET'])
+def families_export(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Familias"
+    
+    headers = ['ID', 'Nombre de Familia', 'Dirección', 'Contacto Principal (ID)', 'Contacto Principal (Nombre)', 'Notas']
+    
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    families = Family.objects.all()
+    
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        families = families.filter(family_name__icontains=search_query)
+    
+    for row_num, family in enumerate(families.order_by('family_name'), 2):
+        ws.cell(row=row_num, column=1, value=str(family.id))
+        ws.cell(row=row_num, column=2, value=family.family_name)
+        ws.cell(row=row_num, column=3, value=family.address)
+        ws.cell(row=row_num, column=4, value=str(family.primary_contact.id) if family.primary_contact else '')
+        ws.cell(row=row_num, column=5, value=family.primary_contact.get_full_name() if family.primary_contact else '')
+        ws.cell(row=row_num, column=6, value=family.notes)
+    
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=familias_export.xlsx'
+    wb.save(response)
+    
+    return response
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def families_import(request):
+    if request.method == 'POST':
+        from openpyxl import load_workbook
+        
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Por favor selecciona un archivo Excel.')
+            return redirect('dashboard:families_import')
+        
+        if not excel_file.name.endswith(('.xlsx', '.xls')):
+            messages.error(request, 'El archivo debe ser un archivo Excel (.xlsx o .xls).')
+            return redirect('dashboard:families_import')
+        
+        try:
+            wb = load_workbook(excel_file)
+            ws = wb.active
+            
+            created_count = 0
+            updated_count = 0
+            error_count = 0
+            errors = []
+            
+            for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                try:
+                    family_id = row[0]
+                    family_name = row[1]
+                    address = row[2] or ''
+                    primary_contact_id = row[3]
+                    notes = row[5] or ''
+                    
+                    if not family_name:
+                        errors.append(f'Fila {row_num}: Nombre de familia es requerido')
+                        error_count += 1
+                        continue
+                    
+                    primary_contact = None
+                    if primary_contact_id:
+                        try:
+                            primary_contact = Member.objects.get(id=primary_contact_id)
+                        except Member.DoesNotExist:
+                            errors.append(f'Fila {row_num}: Contacto principal con ID {primary_contact_id} no existe')
+                    
+                    if family_id:
+                        try:
+                            family = Family.objects.get(id=family_id)
+                            family.family_name = family_name
+                            family.address = address
+                            family.primary_contact = primary_contact
+                            family.notes = notes
+                            family.save()
+                            updated_count += 1
+                        except Family.DoesNotExist:
+                            Family.objects.create(
+                                family_name=family_name,
+                                address=address,
+                                primary_contact=primary_contact,
+                                notes=notes,
+                            )
+                            created_count += 1
+                    else:
+                        Family.objects.create(
+                            family_name=family_name,
+                            address=address,
+                            primary_contact=primary_contact,
+                            notes=notes,
+                        )
+                        created_count += 1
+                
+                except Exception as e:
+                    errors.append(f'Fila {row_num}: {str(e)}')
+                    error_count += 1
+            
+            if created_count > 0:
+                messages.success(request, f'{created_count} familias creadas exitosamente.')
+            if updated_count > 0:
+                messages.success(request, f'{updated_count} familias actualizadas exitosamente.')
+            if error_count > 0:
+                messages.warning(request, f'{error_count} filas con errores.')
+                for error in errors[:10]:
+                    messages.error(request, error)
+            
+            return redirect('dashboard:families_list')
+        
+        except Exception as e:
+            messages.error(request, f'Error al procesar el archivo: {str(e)}')
+            return redirect('dashboard:families_import')
+    
+    return render(request, 'dashboard/families/import.html')
+
+
+@login_required
+@require_http_methods(['GET'])
+def families_download_template(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Familias"
+    
+    headers = ['ID', 'Nombre de Familia', 'Dirección', 'Contacto Principal (ID)', 'Contacto Principal (Nombre)', 'Notas']
+    
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    example_data = ['', 'Familia Pérez', 'Calle Principal 123, Ciudad', '', 'Juan Pérez', 'Familia activa en la iglesia']
+    
+    for col_num, value in enumerate(example_data, 1):
+        ws.cell(row=2, column=col_num, value=value)
+    
+    ws.cell(row=4, column=1, value='INSTRUCCIONES:')
+    ws.cell(row=5, column=1, value='1. Deja el ID vacío para crear nuevas familias')
+    ws.cell(row=6, column=1, value='2. Incluye el ID para actualizar familias existentes')
+    ws.cell(row=7, column=1, value='3. Contacto Principal (ID): ID del miembro contacto (opcional)')
+    
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=plantilla_familias.xlsx'
+    wb.save(response)
+    
+    return response
+
+
+# Events Import/Export Views
+@login_required
+@require_http_methods(['GET'])
+def events_export(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Eventos"
+    
+    headers = [
+        'ID', 'Nombre', 'Descripción', 'Ubicación', 'Fecha Inicio', 'Fecha Fin',
+        'Entrada Gratuita', 'Precio Boleto', 'Capacidad Máxima', 'Tipo de Evento',
+        'Estado', 'Organizador (ID)', 'Organizador (Nombre)', 'Notas'
+    ]
+    
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    events = Event.objects.all()
+    
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        events = events.filter(name__icontains=search_query)
+    
+    status_filter = request.GET.get('status')
+    if status_filter:
+        events = events.filter(status=status_filter)
+    
+    event_type_filter = request.GET.get('event_type')
+    if event_type_filter:
+        events = events.filter(event_type=event_type_filter)
+    
+    for row_num, event in enumerate(events.order_by('-start_date'), 2):
+        ws.cell(row=row_num, column=1, value=str(event.id))
+        ws.cell(row=row_num, column=2, value=event.name)
+        ws.cell(row=row_num, column=3, value=event.description)
+        ws.cell(row=row_num, column=4, value=event.location)
+        ws.cell(row=row_num, column=5, value=event.start_date.strftime('%Y-%m-%d %H:%M') if event.start_date else '')
+        ws.cell(row=row_num, column=6, value=event.end_date.strftime('%Y-%m-%d %H:%M') if event.end_date else '')
+        ws.cell(row=row_num, column=7, value='Sí' if event.is_free_entry else 'No')
+        ws.cell(row=row_num, column=8, value=float(event.ticket_price) if event.ticket_price else '')
+        ws.cell(row=row_num, column=9, value=event.max_capacity if event.max_capacity else '')
+        ws.cell(row=row_num, column=10, value=event.get_event_type_display())
+        ws.cell(row=row_num, column=11, value=event.get_status_display())
+        ws.cell(row=row_num, column=12, value=str(event.organizer.id) if event.organizer else '')
+        ws.cell(row=row_num, column=13, value=event.organizer.get_full_name() if event.organizer else '')
+        ws.cell(row=row_num, column=14, value=event.notes)
+    
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=eventos_export.xlsx'
+    wb.save(response)
+    
+    return response
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def events_import(request):
+    if request.method == 'POST':
+        from openpyxl import load_workbook
+        from datetime import datetime
+        
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Por favor selecciona un archivo Excel.')
+            return redirect('dashboard:events_import')
+        
+        if not excel_file.name.endswith(('.xlsx', '.xls')):
+            messages.error(request, 'El archivo debe ser un archivo Excel (.xlsx o .xls).')
+            return redirect('dashboard:events_import')
+        
+        try:
+            wb = load_workbook(excel_file)
+            ws = wb.active
+            
+            created_count = 0
+            updated_count = 0
+            error_count = 0
+            errors = []
+            
+            for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                try:
+                    event_id = row[0]
+                    name = row[1]
+                    description = row[2] or ''
+                    location = row[3]
+                    start_date = row[4]
+                    end_date = row[5]
+                    is_free_entry = row[6]
+                    ticket_price = row[7]
+                    max_capacity = row[8]
+                    event_type = row[9]
+                    status = row[10]
+                    organizer_id = row[11]
+                    notes = row[13] or ''
+                    
+                    if not name or not location or not start_date:
+                        errors.append(f'Fila {row_num}: Nombre, ubicación y fecha de inicio son requeridos')
+                        error_count += 1
+                        continue
+                    
+                    # Parse dates
+                    if isinstance(start_date, str):
+                        try:
+                            start_date = datetime.strptime(start_date, '%Y-%m-%d %H:%M')
+                        except:
+                            try:
+                                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                            except:
+                                errors.append(f'Fila {row_num}: Formato de fecha inicio inválido')
+                                error_count += 1
+                                continue
+                    
+                    if end_date and isinstance(end_date, str):
+                        try:
+                            end_date = datetime.strptime(end_date, '%Y-%m-%d %H:%M')
+                        except:
+                            try:
+                                end_date = datetime.strptime(end_date, '%Y-%m-%d')
+                            except:
+                                end_date = None
+                    
+                    is_free_entry_bool = is_free_entry in ['Sí', 'Si', 'Yes', 'True', True, 1, '1']
+                    
+                    # Parse event type
+                    event_type_map = {
+                        'Servicio': 'service',
+                        'Conferencia': 'conference',
+                        'Retiro': 'retreat',
+                        'Taller': 'workshop',
+                        'Social': 'social',
+                        'Alcance': 'outreach',
+                        'Otro': 'other',
+                    }
+                    event_type_code = event_type_map.get(event_type, event_type) if event_type else 'service'
+                    
+                    # Parse status
+                    status_map = {
+                        'Borrador': 'draft',
+                        'Publicado': 'published',
+                        'En Curso': 'ongoing',
+                        'Completado': 'completed',
+                        'Cancelado': 'cancelled',
+                    }
+                    status_code = status_map.get(status, status) if status else 'draft'
+                    
+                    organizer = None
+                    if organizer_id:
+                        try:
+                            organizer = Member.objects.get(id=organizer_id)
+                        except Member.DoesNotExist:
+                            errors.append(f'Fila {row_num}: Organizador con ID {organizer_id} no existe')
+                    
+                    if event_id:
+                        try:
+                            event = Event.objects.get(id=event_id)
+                            event.name = name
+                            event.description = description
+                            event.location = location
+                            event.start_date = start_date
+                            event.end_date = end_date
+                            event.is_free_entry = is_free_entry_bool
+                            event.ticket_price = ticket_price if ticket_price else None
+                            event.max_capacity = max_capacity if max_capacity else None
+                            event.event_type = event_type_code
+                            event.status = status_code
+                            event.organizer = organizer
+                            event.notes = notes
+                            event.save()
+                            updated_count += 1
+                        except Event.DoesNotExist:
+                            Event.objects.create(
+                                name=name,
+                                description=description,
+                                location=location,
+                                start_date=start_date,
+                                end_date=end_date,
+                                is_free_entry=is_free_entry_bool,
+                                ticket_price=ticket_price if ticket_price else None,
+                                max_capacity=max_capacity if max_capacity else None,
+                                event_type=event_type_code,
+                                status=status_code,
+                                organizer=organizer,
+                                notes=notes,
+                            )
+                            created_count += 1
+                    else:
+                        Event.objects.create(
+                            name=name,
+                            description=description,
+                            location=location,
+                            start_date=start_date,
+                            end_date=end_date,
+                            is_free_entry=is_free_entry_bool,
+                            ticket_price=ticket_price if ticket_price else None,
+                            max_capacity=max_capacity if max_capacity else None,
+                            event_type=event_type_code,
+                            status=status_code,
+                            organizer=organizer,
+                            notes=notes,
+                        )
+                        created_count += 1
+                
+                except Exception as e:
+                    errors.append(f'Fila {row_num}: {str(e)}')
+                    error_count += 1
+            
+            if created_count > 0:
+                messages.success(request, f'{created_count} eventos creados exitosamente.')
+            if updated_count > 0:
+                messages.success(request, f'{updated_count} eventos actualizados exitosamente.')
+            if error_count > 0:
+                messages.warning(request, f'{error_count} filas con errores.')
+                for error in errors[:10]:
+                    messages.error(request, error)
+            
+            return redirect('dashboard:events_list')
+        
+        except Exception as e:
+            messages.error(request, f'Error al procesar el archivo: {str(e)}')
+            return redirect('dashboard:events_import')
+    
+    return render(request, 'dashboard/events/import.html')
+
+
+@login_required
+@require_http_methods(['GET'])
+def events_download_template(request):
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Eventos"
+    
+    headers = [
+        'ID', 'Nombre', 'Descripción', 'Ubicación', 'Fecha Inicio', 'Fecha Fin',
+        'Entrada Gratuita', 'Precio Boleto', 'Capacidad Máxima', 'Tipo de Evento',
+        'Estado', 'Organizador (ID)', 'Organizador (Nombre)', 'Notas'
+    ]
+    
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    example_data = [
+        '', 'Conferencia de Jóvenes 2024', 'Conferencia anual para jóvenes',
+        'Auditorio Principal', '2024-06-15 18:00', '2024-06-15 21:00',
+        'Sí', '', '200', 'Conferencia', 'Publicado', '', 'Juan Pérez',
+        'Evento especial para jóvenes'
+    ]
+    
+    for col_num, value in enumerate(example_data, 1):
+        ws.cell(row=2, column=col_num, value=value)
+    
+    ws.cell(row=4, column=1, value='INSTRUCCIONES:')
+    ws.cell(row=5, column=1, value='1. Deja el ID vacío para crear nuevos eventos')
+    ws.cell(row=6, column=1, value='2. Incluye el ID para actualizar eventos existentes')
+    ws.cell(row=7, column=1, value='3. Fechas en formato: YYYY-MM-DD HH:MM (ej: 2024-06-15 18:00)')
+    ws.cell(row=8, column=1, value='4. Tipo de Evento: Servicio, Conferencia, Retiro, Taller, Social, Alcance, Otro')
+    ws.cell(row=9, column=1, value='5. Estado: Borrador, Publicado, En Curso, Completado, Cancelado')
+    ws.cell(row=10, column=1, value='6. Entrada Gratuita: Sí o No')
+    
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=plantilla_eventos.xlsx'
+    wb.save(response)
+    
+    return response

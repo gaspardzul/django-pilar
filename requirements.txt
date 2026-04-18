@@ -12,4 +12,5 @@ dj-database-url
 psycopg[binary]
 django-tenants
 Pillow
+openpyxl
 ruff
