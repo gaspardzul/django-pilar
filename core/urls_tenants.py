@@ -12,6 +12,7 @@ urlpatterns = [
     path('', include('apps.landing.urls')),
     path('dashboard/', include('apps.dashboard.urls')),
     path('subscriptions/', include('apps.subscriptions.urls')),
+    path('finance/', include('apps.finance.urls')),
 ]
 
 if settings.DEBUG:

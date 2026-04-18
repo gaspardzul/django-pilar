@@ -78,7 +78,27 @@
                 <a href="{% url 'dashboard:events_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'events' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
                     <i class="fa-solid fa-calendar-days text-xs w-4 text-center"></i> Eventos
                 </a>
-                
+
+                <!-- Finance Section -->
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Finanzas</p>
+                </div>
+                <a href="{% url 'finance:home' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'finance' in request.path and request.path == '/finance/' %}bg-primary text-white{% elif 'finance' in request.path %}text-gray hover:text-primary hover:bg-primary/5{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-chart-line text-xs w-4 text-center"></i> Resumen
+                </a>
+                <a href="{% url 'finance:transactions_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'finance/transactions' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-receipt text-xs w-4 text-center"></i> Transacciones
+                </a>
+                <a href="{% url 'finance:contributions_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'finance/contributions' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-hand-holding-heart text-xs w-4 text-center"></i> Contribuciones
+                </a>
+                <a href="{% url 'finance:accounts_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'finance/accounts' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-building-columns text-xs w-4 text-center"></i> Cuentas
+                </a>
+                <a href="{% url 'finance:catalogs' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'finance/catalogs' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-tags text-xs w-4 text-center"></i> Catálogos
+                </a>
+
                 <!-- Account Section -->
                 <div class="pt-4 pb-2">
                     <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Cuenta</p>
@@ -148,7 +168,27 @@
                 <a href="{% url 'dashboard:events_list' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'events' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
                     <i class="fa-solid fa-calendar-days text-xs w-4 text-center"></i> Eventos
                 </a>
-                
+
+                <!-- Finance Section -->
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Finanzas</p>
+                </div>
+                <a href="{% url 'finance:home' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if request.path == '/finance/' %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-chart-line text-xs w-4 text-center"></i> Resumen
+                </a>
+                <a href="{% url 'finance:transactions_list' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'finance/transactions' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-receipt text-xs w-4 text-center"></i> Transacciones
+                </a>
+                <a href="{% url 'finance:contributions_list' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'finance/contributions' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-hand-holding-heart text-xs w-4 text-center"></i> Contribuciones
+                </a>
+                <a href="{% url 'finance:accounts_list' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'finance/accounts' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-building-columns text-xs w-4 text-center"></i> Cuentas
+                </a>
+                <a href="{% url 'finance:catalogs' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'finance/catalogs' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-tags text-xs w-4 text-center"></i> Catálogos
+                </a>
+
                 <!-- Account Section -->
                 <div class="pt-4 pb-2">
                     <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Cuenta</p>

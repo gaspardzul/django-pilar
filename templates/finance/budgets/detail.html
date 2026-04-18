@@ -1,0 +1,89 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ budget.name }} | Finanzas{% endblock %}
+{% block page_title %}{{ budget.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6 flex items-center justify-between">
+    <a href="{% url 'finance:budgets_list' %}" class="text-xs text-gray hover:text-black">
+        <i class="fa-solid fa-arrow-left mr-1"></i>Volver a Presupuestos
+    </a>
+    <a href="{% url 'finance:budget_edit' budget.id %}" class="px-4 py-2 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">
+        <i class="fa-solid fa-pen mr-2"></i>Editar
+    </a>
+</div>
+
+<div class="mb-2">
+    <p class="text-sm text-gray">{{ budget.get_period_display }} · {{ budget.start_date|date:"d M Y" }} — {{ budget.end_date|date:"d M Y" }}</p>
+</div>
+
+<!-- Resumen -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white border border-light-gray rounded p-5">
+        <p class="text-xs text-gray uppercase tracking-wider">Ingresos Reales</p>
+        <p class="mt-2 text-2xl font-medium text-green-600">${{ actual_income|floatformat:2 }}</p>
+        <p class="text-xs text-gray mt-1">Meta: ${{ budget.total_income_budget|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-5">
+        <p class="text-xs text-gray uppercase tracking-wider">Egresos Reales</p>
+        <p class="mt-2 text-2xl font-medium text-red-600">${{ actual_expense|floatformat:2 }}</p>
+        <p class="text-xs text-gray mt-1">Límite: ${{ budget.total_expense_budget|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-5 {% if income_variance >= 0 %}border-l-4 border-l-green-500{% else %}border-l-4 border-l-red-500{% endif %}">
+        <p class="text-xs text-gray uppercase tracking-wider">Variación Ingresos</p>
+        <p class="mt-2 text-2xl font-medium {% if income_variance >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+            {% if income_variance >= 0 %}+{% endif %}${{ income_variance|floatformat:2 }}
+        </p>
+        <p class="text-xs text-gray mt-1">{% if income_variance >= 0 %}Por encima{% else %}Por debajo{% endif %} de la meta</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-5 {% if expense_variance >= 0 %}border-l-4 border-l-green-500{% else %}border-l-4 border-l-red-500{% endif %}">
+        <p class="text-xs text-gray uppercase tracking-wider">Variación Egresos</p>
+        <p class="mt-2 text-2xl font-medium {% if expense_variance >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+            {% if expense_variance >= 0 %}+{% endif %}${{ expense_variance|floatformat:2 }}</p>
+        <p class="text-xs text-gray mt-1">{% if expense_variance >= 0 %}Dentro del límite{% else %}Excedido{% endif %}</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Ingresos por categoría -->
+    <div class="bg-white border border-light-gray rounded">
+        <div class="px-6 py-4 border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Ingresos por Categoría</h3>
+        </div>
+        <div class="divide-y divide-light-gray">
+            {% for item in income_breakdown %}
+            <div class="px-6 py-3 flex items-center justify-between">
+                <span class="text-sm text-black">{{ all_categories|default:item.category }}</span>
+                <span class="text-sm font-medium text-green-600">${{ item.total|floatformat:2 }}</span>
+            </div>
+            {% empty %}
+            <div class="px-6 py-6 text-center text-sm text-gray">Sin ingresos en este período.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Egresos por categoría -->
+    <div class="bg-white border border-light-gray rounded">
+        <div class="px-6 py-4 border-b border-light-gray">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Egresos por Categoría</h3>
+        </div>
+        <div class="divide-y divide-light-gray">
+            {% for item in expense_breakdown %}
+            <div class="px-6 py-3 flex items-center justify-between">
+                <span class="text-sm text-black">{{ item.category }}</span>
+                <span class="text-sm font-medium text-red-600">${{ item.total|floatformat:2 }}</span>
+            </div>
+            {% empty %}
+            <div class="px-6 py-6 text-center text-sm text-gray">Sin egresos en este período.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if budget.notes %}
+<div class="mt-6 bg-white border border-light-gray rounded p-5">
+    <p class="text-xs text-gray uppercase tracking-wider mb-2">Notas</p>
+    <p class="text-sm text-black">{{ budget.notes }}</p>
+</div>
+{% endif %}
+{% endblock %}

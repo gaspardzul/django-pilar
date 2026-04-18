@@ -262,6 +262,7 @@ class Event(models.Model):
         related_name='organized_events'
     )
     notes = models.TextField(blank=True)
+    requires_lodging = models.BooleanField(default=False, verbose_name='Requiere hospedaje')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -554,3 +555,152 @@ class EventExpense(models.Model):
 
     def __str__(self):
         return f"${self.amount} - {self.get_category_display()}"
+
+
+# ── Hospedaje ─────────────────────────────────────────────────────────────────
+
+class EventLodging(models.Model):
+    """Configuración de hospedaje para un evento. Habilita el módulo y define la meta total."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='lodging')
+    is_enabled = models.BooleanField(default=True, verbose_name='Hospedaje habilitado')
+    total_needed = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Total de personas a hospedar',
+        help_text='Cuántas personas necesitan hospedaje para este evento',
+    )
+    notes = models.TextField(blank=True, verbose_name='Notas generales')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'business_event_lodging'
+        verbose_name = 'Hospedaje de Evento'
+        verbose_name_plural = 'Hospedajes de Evento'
+
+    def __str__(self):
+        return f'Hospedaje - {self.event.name}'
+
+    def get_total_capacity(self):
+        return self.hosts.filter(active=True).aggregate(
+            total=models.Sum('capacity')
+        )['total'] or 0
+
+    def get_total_assigned(self):
+        return self.hosts.filter(active=True).aggregate(
+            total=models.Sum('assigned_count')
+        )['total'] or 0
+
+    def get_available_spots(self):
+        return self.get_total_capacity() - self.get_total_assigned()
+
+    def is_covered(self):
+        """¿La capacidad ofrecida cubre la meta del evento?"""
+        return self.get_total_capacity() >= self.total_needed if self.total_needed > 0 else False
+
+    def coverage_percentage(self):
+        if self.total_needed > 0:
+            return min(round((self.get_total_capacity() / self.total_needed) * 100), 100)
+        return 0
+
+
+class LodgingHost(models.Model):
+    """Hermano que ofrece su casa/espacio para hospedar durante el evento."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    lodging = models.ForeignKey(EventLodging, on_delete=models.CASCADE, related_name='hosts')
+    host = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lodging_offers',
+        verbose_name='Anfitrión',
+    )
+    host_name = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name='Nombre del anfitrión',
+        help_text='Si no es miembro registrado, escribe el nombre aquí',
+    )
+    address = models.TextField(verbose_name='Dirección / Ubicación')
+    capacity = models.PositiveIntegerField(verbose_name='Capacidad (personas)')
+    assigned_count = models.PositiveIntegerField(default=0, verbose_name='Personas asignadas')
+    active = models.BooleanField(default=True, verbose_name='Disponible')
+    notes = models.TextField(
+        blank=True,
+        verbose_name='Notas',
+        help_text='Ej: tiene 2 hamacas, requieren llevar colchas, hay 1 cama matrimonial, etc.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'business_lodging_host'
+        verbose_name = 'Anfitrión'
+        verbose_name_plural = 'Anfitriones'
+        ordering = ['host_name', 'host__last_name']
+
+    def __str__(self):
+        name = self.get_display_name()
+        return f'{name} ({self.assigned_count}/{self.capacity})'
+
+    def get_display_name(self):
+        if self.host:
+            return self.host.get_full_name()
+        return self.host_name or 'Sin nombre'
+
+    def available_spots(self):
+        return max(self.capacity - self.assigned_count, 0)
+
+    def is_full(self):
+        return self.assigned_count >= self.capacity
+
+
+class LodgingGuest(models.Model):
+    """Grupo de personas asignadas a un anfitrión."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    host = models.ForeignKey(LodgingHost, on_delete=models.CASCADE, related_name='guests')
+    representative = models.ForeignKey(
+        Member,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lodging_as_guest',
+        verbose_name='Representante del grupo',
+    )
+    representative_name = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name='Nombre del representante',
+        help_text='Si no es miembro registrado',
+    )
+    adults = models.PositiveIntegerField(default=1, verbose_name='Adultos')
+    children = models.PositiveIntegerField(default=0, verbose_name='Niños')
+    notes = models.TextField(blank=True, verbose_name='Notas')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'business_lodging_guest'
+        verbose_name = 'Grupo Huésped'
+        verbose_name_plural = 'Grupos Huéspedes'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.get_display_name()} ({self.total_people()} personas)'
+
+    def get_display_name(self):
+        if self.representative:
+            return self.representative.get_full_name()
+        return self.representative_name or 'Sin nombre'
+
+    def total_people(self):
+        return self.adults + self.children
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Recalculate assigned_count on the host
+        self.host.assigned_count = sum(g.total_people() for g in self.host.guests.all())
+        self.host.save(update_fields=['assigned_count'])

@@ -1,0 +1,71 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Cuenta | Finanzas{% endblock %}
+{% block page_title %}{{ action }} Cuenta{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6">
+    <a href="{% url 'finance:accounts_list' %}" class="text-xs text-gray hover:text-black">
+        <i class="fa-solid fa-arrow-left mr-1"></i>Volver a Cuentas
+    </a>
+</div>
+
+<div class="max-w-lg bg-white border border-light-gray rounded">
+    <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-sm font-medium text-black uppercase tracking-wider">{{ action }} Cuenta Financiera</h3>
+    </div>
+    <form method="POST" class="p-6 space-y-5">
+        {% csrf_token %}
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Nombre *</label>
+            <input type="text" name="name" value="{{ account.name|default:'' }}" required
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Tipo *</label>
+            <select name="account_type" required class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                <option value="">Seleccionar...</option>
+                <option value="cash" {% if account.account_type == 'cash' %}selected{% endif %}>Efectivo / Caja</option>
+                <option value="checking" {% if account.account_type == 'checking' %}selected{% endif %}>Cuenta Corriente</option>
+                <option value="savings" {% if account.account_type == 'savings' %}selected{% endif %}>Cuenta de Ahorro</option>
+                <option value="investment" {% if account.account_type == 'investment' %}selected{% endif %}>Inversión</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Banco</label>
+            <input type="text" name="bank_name" value="{{ account.bank_name|default:'' }}"
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Número de Cuenta</label>
+            <input type="text" name="account_number" value="{{ account.account_number|default:'' }}"
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        {% if action == 'Crear' %}
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Saldo Inicial</label>
+            <input type="number" name="initial_balance" value="0" min="0" step="0.01"
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        {% endif %}
+        {% if action == 'Editar' %}
+        <div class="flex items-center gap-3">
+            <input type="checkbox" name="active" id="active" {% if account.active %}checked{% endif %} class="w-4 h-4">
+            <label for="active" class="text-sm text-black">Cuenta activa</label>
+        </div>
+        {% endif %}
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Notas</label>
+            <textarea name="notes" rows="3" class="w-full border border-light-gray p-2 focus:outline-none text-sm resize-none">{{ account.notes|default:'' }}</textarea>
+        </div>
+        <div class="flex items-center gap-3 pt-4 border-t border-light-gray">
+            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                {{ action }} Cuenta
+            </button>
+            <a href="{% url 'finance:accounts_list' %}" class="px-6 py-2.5 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -10,7 +10,8 @@ from django.views.decorators.http import require_http_methods
 from apps.business.models import (
     Member, Ministry, Family, MemberMinistry, FamilyMember,
     Event, EventWorkGroup, EventWorker,
-    EventBudget, EventIncome, EventExpense
+    EventBudget, EventIncome, EventExpense,
+    EventLodging, LodgingHost, LodgingGuest,
 )
 from .models import SubscriptionPlan, UserSettings
 from .tasks import (
@@ -735,9 +736,8 @@ def family_remove_member(request, family_id, family_member_id):
 @login_required
 @require_http_methods(['GET'])
 def events_list(request):
-    events = Event.objects.all().order_by('-start_date')
-    
-    # Search
+    events = Event.objects.prefetch_related('lodging').order_by('-start_date')
+
     search_query = request.GET.get('q')
     if search_query:
         events = events.filter(
@@ -745,23 +745,36 @@ def events_list(request):
             models.Q(description__icontains=search_query) |
             models.Q(location__icontains=search_query)
         )
-    
-    # Filter by status
+
     status_filter = request.GET.get('status')
     if status_filter:
         events = events.filter(status=status_filter)
-    
-    # Filter by type
+
     type_filter = request.GET.get('type')
     if type_filter:
         events = events.filter(event_type=type_filter)
-    
+
+    view_mode = request.GET.get('view', 'card')
+    if view_mode not in ('card', 'table'):
+        view_mode = 'card'
+
+    all_events = Event.objects.all()
+    events_with_lodging = all_events.filter(requires_lodging=True).count()
+    # Pending = requires lodging but capacity < total_needed
+    lodging_pending = sum(
+        1 for e in all_events.filter(requires_lodging=True).prefetch_related('lodging')
+        if hasattr(e, 'lodging') and not e.lodging.is_covered()
+    )
+
     context = {
         'events': events,
-        'total_events': Event.objects.count(),
+        'total_events': all_events.count(),
         'status_filter': status_filter,
         'type_filter': type_filter,
         'search_query': search_query,
+        'view_mode': view_mode,
+        'events_with_lodging': events_with_lodging,
+        'lodging_pending': lodging_pending,
     }
     return render(request, 'dashboard/events/list.html', context)
 
@@ -811,6 +824,7 @@ def event_create(request):
             event_type=request.POST.get('event_type', 'service'),
             status=request.POST.get('status', 'draft'),
             notes=request.POST.get('notes', ''),
+            requires_lodging=request.POST.get('requires_lodging') == 'on',
         )
         
         # Set organizer if provided
@@ -843,6 +857,7 @@ def event_edit(request, event_id):
         event.event_type = request.POST.get('event_type', 'service')
         event.status = request.POST.get('status', 'draft')
         event.notes = request.POST.get('notes', '')
+        event.requires_lodging = request.POST.get('requires_lodging') == 'on'
         
         # Update organizer if provided
         organizer_id = request.POST.get('organizer')
@@ -1040,6 +1055,102 @@ def event_remove_expense(request, event_id, expense_id):
     
     messages.success(request, f'Egreso de ${amount} eliminado.')
     return redirect('dashboard:event_detail', event_id=event_id)
+
+
+# ── Hospedaje ─────────────────────────────────────────────────────────────────
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def event_lodging(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    lodging, _ = EventLodging.objects.get_or_create(event=event)
+
+    if request.method == 'POST':
+        lodging.is_enabled = request.POST.get('is_enabled') == 'on'
+        lodging.total_needed = request.POST.get('total_needed') or 0
+        lodging.notes = request.POST.get('notes', '')
+        lodging.save()
+        messages.success(request, 'Configuración de hospedaje actualizada.')
+        return redirect('dashboard:event_lodging', event_id=event_id)
+
+    hosts = lodging.hosts.prefetch_related('guests').order_by('created_at')
+    members = Member.objects.filter(status='active').order_by('last_name', 'first_name')
+    context = {
+        'event': event,
+        'lodging': lodging,
+        'hosts': hosts,
+        'members': members,
+        'total_capacity': lodging.get_total_capacity(),
+        'total_assigned': lodging.get_total_assigned(),
+        'available_spots': lodging.get_available_spots(),
+        'coverage_percentage': lodging.coverage_percentage(),
+    }
+    return render(request, 'dashboard/events/lodging.html', context)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_lodging_add_host(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    lodging, _ = EventLodging.objects.get_or_create(event=event)
+    member_id = request.POST.get('host_member')
+    LodgingHost.objects.create(
+        lodging=lodging,
+        host_id=member_id if member_id else None,
+        host_name=request.POST.get('host_name', ''),
+        address=request.POST.get('address'),
+        capacity=request.POST.get('capacity', 1),
+        notes=request.POST.get('notes', ''),
+    )
+    messages.success(request, 'Anfitrión agregado exitosamente.')
+    return redirect('dashboard:event_lodging', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_lodging_remove_host(request, event_id, host_id):
+    host = get_object_or_404(LodgingHost, id=host_id, lodging__event_id=event_id)
+    host.delete()
+    messages.success(request, 'Anfitrión eliminado.')
+    return redirect('dashboard:event_lodging', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_lodging_add_guest(request, event_id, host_id):
+    host = get_object_or_404(LodgingHost, id=host_id, lodging__event_id=event_id)
+    adults = int(request.POST.get('adults', 1))
+    children = int(request.POST.get('children', 0))
+    total = adults + children
+
+    if total > host.available_spots():
+        messages.error(request, f'No hay suficiente espacio. Disponible: {host.available_spots()} personas.')
+        return redirect('dashboard:event_lodging', event_id=event_id)
+
+    member_id = request.POST.get('representative_member')
+    LodgingGuest.objects.create(
+        host=host,
+        representative_id=member_id if member_id else None,
+        representative_name=request.POST.get('representative_name', ''),
+        adults=adults,
+        children=children,
+        notes=request.POST.get('notes', ''),
+    )
+    messages.success(request, f'Grupo de {total} persona(s) asignado.')
+    return redirect('dashboard:event_lodging', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_lodging_remove_guest(request, event_id, guest_id):
+    guest = get_object_or_404(LodgingGuest, id=guest_id, host__lodging__event_id=event_id)
+    host = guest.host
+    guest.delete()
+    # Recalculate
+    host.assigned_count = sum(g.total_people() for g in host.guests.all())
+    host.save(update_fields=['assigned_count'])
+    messages.success(request, 'Grupo eliminado del hospedaje.')
+    return redirect('dashboard:event_lodging', event_id=event_id)
 
 
 # Members Import/Export Views

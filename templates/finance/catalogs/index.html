@@ -1,0 +1,118 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Catálogos | Finanzas{% endblock %}
+{% block page_title %}Catálogos{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Catálogos Financieros</h2>
+        <p class="mt-1 text-sm text-gray">Administra las categorías de ingresos y egresos de tu iglesia</p>
+    </div>
+    <a href="{% url 'finance:category_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Nueva Categoría
+    </a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Categorías de Ingresos -->
+    <div class="bg-white border border-light-gray rounded">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Categorías de Ingresos</h3>
+            </div>
+            <span class="text-xs text-gray">{{ income_categories.count }} categorías</span>
+        </div>
+        <div class="divide-y divide-light-gray">
+            {% for cat in income_categories %}
+            <div class="px-6 py-3 flex items-center justify-between group">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-arrow-down text-green-500 text-xs w-4 text-center"></i>
+                    <div>
+                        <p class="text-sm text-black">{{ cat.name }}</p>
+                        {% if cat.description %}<p class="text-xs text-gray">{{ cat.description }}</p>{% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {% if cat.is_default %}
+                    <span class="text-xs text-gray px-2 py-0.5 border border-light-gray rounded">Predeterminada</span>
+                    {% endif %}
+                    {% if not cat.active %}
+                    <span class="text-xs text-gray px-2 py-0.5 bg-gray-100 rounded">Inactiva</span>
+                    {% endif %}
+                    <a href="{% url 'finance:category_edit' cat.id %}" class="text-xs text-gray hover:text-black">
+                        <i class="fa-solid fa-pen"></i>
+                    </a>
+                    {% if not cat.is_default %}
+                    <form method="POST" action="{% url 'finance:category_delete' cat.id %}" class="inline"
+                          onsubmit="return confirm('¿Eliminar esta categoría?')">
+                        {% csrf_token %}
+                        <button type="submit" class="text-xs text-gray hover:text-red-600">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="px-6 py-6 text-center text-sm text-gray">No hay categorías de ingresos.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Categorías de Egresos -->
+    <div class="bg-white border border-light-gray rounded">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Categorías de Egresos</h3>
+            </div>
+            <span class="text-xs text-gray">{{ expense_categories.count }} categorías</span>
+        </div>
+        <div class="divide-y divide-light-gray">
+            {% for cat in expense_categories %}
+            <div class="px-6 py-3 flex items-center justify-between group">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-arrow-up text-red-500 text-xs w-4 text-center"></i>
+                    <div>
+                        <p class="text-sm text-black">{{ cat.name }}</p>
+                        {% if cat.description %}<p class="text-xs text-gray">{{ cat.description }}</p>{% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {% if cat.is_default %}
+                    <span class="text-xs text-gray px-2 py-0.5 border border-light-gray rounded">Predeterminada</span>
+                    {% endif %}
+                    {% if not cat.active %}
+                    <span class="text-xs text-gray px-2 py-0.5 bg-gray-100 rounded">Inactiva</span>
+                    {% endif %}
+                    <a href="{% url 'finance:category_edit' cat.id %}" class="text-xs text-gray hover:text-black">
+                        <i class="fa-solid fa-pen"></i>
+                    </a>
+                    {% if not cat.is_default %}
+                    <form method="POST" action="{% url 'finance:category_delete' cat.id %}" class="inline"
+                          onsubmit="return confirm('¿Eliminar esta categoría?')">
+                        {% csrf_token %}
+                        <button type="submit" class="text-xs text-gray hover:text-red-600">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="px-6 py-6 text-center text-sm text-gray">No hay categorías de egresos.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Info -->
+<div class="mt-6 bg-white border border-light-gray rounded p-5">
+    <p class="text-xs text-gray uppercase tracking-wider mb-2">Información</p>
+    <p class="text-sm text-gray">Las categorías <span class="text-black font-medium">predeterminadas</span> no se pueden eliminar, pero sí editar o desactivar. Puedes crear categorías personalizadas para tu iglesia.</p>
+</div>
+{% endblock %}

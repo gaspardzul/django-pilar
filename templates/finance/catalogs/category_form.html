@@ -1,0 +1,65 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Categoría | Finanzas{% endblock %}
+{% block page_title %}{{ action }} Categoría{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6">
+    <a href="{% url 'finance:catalogs' %}" class="text-xs text-gray hover:text-black">
+        <i class="fa-solid fa-arrow-left mr-1"></i>Volver a Catálogos
+    </a>
+</div>
+
+<div class="max-w-md bg-white border border-light-gray rounded">
+    <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-sm font-medium text-black uppercase tracking-wider">{{ action }} Categoría</h3>
+    </div>
+    <form method="POST" class="p-6 space-y-5">
+        {% csrf_token %}
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Nombre *</label>
+            <input type="text" name="name" value="{{ category.name|default:'' }}" required
+                   placeholder="Ej: Ofrenda Misionera"
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Tipo *</label>
+            <select name="category_type" required class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                <option value="income" {% if not category or category.category_type == 'income' %}selected{% endif %}>
+                    Ingreso
+                </option>
+                <option value="expense" {% if category.category_type == 'expense' %}selected{% endif %}>
+                    Egreso
+                </option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Descripción</label>
+            <input type="text" name="description" value="{{ category.description|default:'' }}"
+                   placeholder="Descripción opcional..."
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        {% if action == 'Editar' %}
+        <div class="space-y-3">
+            <div class="flex items-center gap-3">
+                <input type="checkbox" name="active" id="active" {% if category.active %}checked{% endif %} class="w-4 h-4">
+                <label for="active" class="text-sm text-black">Categoría activa</label>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="checkbox" name="is_default" id="is_default" {% if category.is_default %}checked{% endif %} class="w-4 h-4">
+                <label for="is_default" class="text-sm text-black">Categoría predeterminada</label>
+                <span class="text-xs text-gray">(aparece primero en los selectores)</span>
+            </div>
+        </div>
+        {% endif %}
+        <div class="flex items-center gap-3 pt-4 border-t border-light-gray">
+            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                {{ action }} Categoría
+            </button>
+            <a href="{% url 'finance:catalogs' %}" class="px-6 py-2.5 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Transacción | Finanzas{% endblock %}
+{% block page_title %}{{ action }} Transacción{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6">
+    <a href="{% url 'finance:transactions_list' %}" class="text-xs text-gray hover:text-black">
+        <i class="fa-solid fa-arrow-left mr-1"></i>Volver a Transacciones
+    </a>
+</div>
+
+<div class="max-w-2xl bg-white border border-light-gray rounded" x-data="{ txType: '{{ transaction.transaction_type|default:'income' }}' }">
+    <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-sm font-medium text-black uppercase tracking-wider">{{ action }} Transacción</h3>
+    </div>
+    <form method="POST" class="p-6 space-y-5">
+        {% csrf_token %}
+
+        <!-- Tipo -->
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-3">Tipo *</label>
+            <div class="flex gap-3">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="transaction_type" value="income" x-model="txType"
+                           {% if not transaction or transaction.transaction_type == 'income' %}checked{% endif %}
+                           class="w-4 h-4 accent-primary">
+                    <span class="text-sm text-green-600 font-medium">Ingreso</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="transaction_type" value="expense" x-model="txType"
+                           {% if transaction.transaction_type == 'expense' %}checked{% endif %}
+                           class="w-4 h-4 accent-primary">
+                    <span class="text-sm text-red-600 font-medium">Egreso</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Categoría dinámica según tipo -->
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Categoría *</label>
+            <select name="category" required class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                <option value="">Seleccionar...</option>
+                <optgroup label="Ingresos" x-show="txType === 'income'">
+                    {% for cat in income_categories %}
+                    <option value="{{ cat.id }}"
+                            data-type="income"
+                            {% if transaction.category_id == cat.id %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </optgroup>
+                <optgroup label="Egresos" x-show="txType === 'expense'">
+                    {% for cat in expense_categories %}
+                    <option value="{{ cat.id }}"
+                            data-type="expense"
+                            {% if transaction.category_id == cat.id %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </optgroup>
+            </select>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Monto *</label>
+                <input type="number" name="amount" value="{{ transaction.amount|default:'' }}" required min="0.01" step="0.01"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Fecha *</label>
+                <input type="date" name="date" value="{{ transaction.date|date:'Y-m-d'|default:today }}" required
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Descripción *</label>
+            <input type="text" name="description" value="{{ transaction.description|default:'' }}" required
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Cuenta *</label>
+                <select name="account" required class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    <option value="">Seleccionar...</option>
+                    {% for acc in accounts %}
+                    <option value="{{ acc.id }}" {% if transaction.account_id == acc.id %}selected{% endif %}>{{ acc.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Método de Pago</label>
+                <select name="payment_method" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    {% for val, label in payment_methods %}
+                    <option value="{{ val }}" {% if transaction.payment_method == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Estado</label>
+                <select name="status" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    <option value="completed" {% if not transaction or transaction.status == 'completed' %}selected{% endif %}>Completado</option>
+                    <option value="pending" {% if transaction.status == 'pending' %}selected{% endif %}>Pendiente</option>
+                    <option value="cancelled" {% if transaction.status == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Número de Referencia</label>
+                <input type="text" name="reference_number" value="{{ transaction.reference_number|default:'' }}"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Miembro Relacionado</label>
+            <select name="related_member" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                <option value="">Ninguno / Anónimo</option>
+                {% for member in members %}
+                <option value="{{ member.id }}" {% if transaction.related_member_id == member.id %}selected{% endif %}>
+                    {{ member.get_full_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Notas</label>
+            <textarea name="notes" rows="3" class="w-full border border-light-gray p-2 focus:outline-none text-sm resize-none">{{ transaction.notes|default:'' }}</textarea>
+        </div>
+
+        <div class="flex items-center gap-3 pt-4 border-t border-light-gray">
+            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                {{ action }} Transacción
+            </button>
+            <a href="{% url 'finance:transactions_list' %}" class="px-6 py-2.5 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce }}">
+    function filterCategories() {
+        const txType = document.querySelector('input[name="transaction_type"]:checked')?.value;
+        const select = document.querySelector('select[name="category"]');
+        if (!select || !txType) return;
+        Array.from(select.options).forEach(opt => {
+            if (!opt.value) return;
+            opt.hidden = opt.dataset.type !== txType;
+        });
+        const selected = select.options[select.selectedIndex];
+        if (selected && selected.dataset.type && selected.dataset.type !== txType) {
+            select.value = '';
+        }
+    }
+    document.querySelectorAll('input[name="transaction_type"]').forEach(r => r.addEventListener('change', filterCategories));
+    document.addEventListener('DOMContentLoaded', filterCategories);
+</script>
+{% endblock %}

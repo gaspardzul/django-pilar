@@ -66,4 +66,11 @@ urlpatterns = [
     path('events/<uuid:event_id>/remove-income/<uuid:income_id>/', views.event_remove_income, name='event_remove_income'),
     path('events/<uuid:event_id>/add-expense/', views.event_add_expense, name='event_add_expense'),
     path('events/<uuid:event_id>/remove-expense/<uuid:expense_id>/', views.event_remove_expense, name='event_remove_expense'),
+
+    # Event Lodging
+    path('events/<uuid:event_id>/lodging/', views.event_lodging, name='event_lodging'),
+    path('events/<uuid:event_id>/lodging/add-host/', views.event_lodging_add_host, name='event_lodging_add_host'),
+    path('events/<uuid:event_id>/lodging/remove-host/<uuid:host_id>/', views.event_lodging_remove_host, name='event_lodging_remove_host'),
+    path('events/<uuid:event_id>/lodging/host/<uuid:host_id>/add-guest/', views.event_lodging_add_guest, name='event_lodging_add_guest'),
+    path('events/<uuid:event_id>/lodging/remove-guest/<uuid:guest_id>/', views.event_lodging_remove_guest, name='event_lodging_remove_guest'),
 ]

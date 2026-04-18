@@ -1,0 +1,54 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Presupuestos | Finanzas{% endblock %}
+{% block page_title %}Presupuestos{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Presupuestos</h2>
+        <p class="mt-1 text-sm text-gray">Planificación financiera por período</p>
+    </div>
+    <a href="{% url 'finance:budget_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Nuevo Presupuesto
+    </a>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for budget in budgets %}
+    <div class="bg-white border border-light-gray rounded p-5">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <p class="text-sm font-medium text-black">{{ budget.name }}</p>
+                <p class="text-xs text-gray mt-0.5">{{ budget.get_period_display }}</p>
+            </div>
+            <span class="text-xs text-gray">{{ budget.start_date|date:"M Y" }}</span>
+        </div>
+        <div class="space-y-2 mb-4">
+            <div class="flex justify-between text-xs">
+                <span class="text-gray">Presupuesto Ingresos</span>
+                <span class="text-black font-medium">${{ budget.total_income_budget|floatformat:2 }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+                <span class="text-gray">Presupuesto Egresos</span>
+                <span class="text-black font-medium">${{ budget.total_expense_budget|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 pt-3 border-t border-light-gray">
+            <a href="{% url 'finance:budget_detail' budget.id %}" class="text-xs text-gray hover:text-black">
+                <i class="fa-solid fa-chart-bar mr-1"></i>Ver Reporte
+            </a>
+            <a href="{% url 'finance:budget_edit' budget.id %}" class="text-xs text-gray hover:text-black">
+                <i class="fa-solid fa-pen mr-1"></i>Editar
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-3 bg-white border border-light-gray rounded p-12 text-center">
+        <i class="fa-solid fa-chart-pie text-gray text-3xl mb-3"></i>
+        <p class="text-sm text-gray mb-2">No hay presupuestos creados</p>
+        <a href="{% url 'finance:budget_create' %}" class="text-xs text-black hover:underline">Crear primer presupuesto &rarr;</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

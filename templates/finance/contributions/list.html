@@ -1,0 +1,109 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Contribuciones | Finanzas{% endblock %}
+{% block page_title %}Contribuciones{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Diezmos y Ofrendas</h2>
+        <p class="mt-1 text-sm text-gray">Registro de contribuciones por miembro</p>
+    </div>
+    <a href="{% url 'finance:contribution_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Registrar Contribución
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="mb-6 bg-white border border-light-gray rounded">
+    <form method="GET" class="p-5 flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-48">
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Buscar Miembro</label>
+            <input type="text" name="q" value="{{ search|default:'' }}" placeholder="Nombre del miembro..."
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        <div class="min-w-40">
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Tipo</label>
+            <select name="category" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                <option value="">Todos</option>
+                {% for cat in income_categories %}
+                <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                <i class="fa-solid fa-search mr-1"></i>Filtrar
+            </button>
+            <a href="{% url 'finance:contributions_list' %}" class="px-4 py-2 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">
+                Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Total -->
+<div class="mb-6 bg-white border border-light-gray rounded p-4 inline-block">
+    <p class="text-xs text-gray uppercase tracking-wider">Total Contribuciones</p>
+    <p class="mt-1 text-2xl font-medium text-black">${{ total|floatformat:2 }}</p>
+</div>
+
+<!-- Tabla -->
+<div class="bg-white border border-light-gray rounded">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="border-b border-light-gray bg-[#fafafa]">
+                <tr>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Miembro</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Tipo</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Fecha</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Frecuencia</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Método</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Recibo</th>
+                    <th class="px-5 py-3 text-right text-xs font-medium text-gray uppercase tracking-wider">Monto</th>
+                    <th class="px-5 py-3 text-right text-xs font-medium text-gray uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-light-gray">
+                {% for contrib in contributions %}
+                <tr class="hover:bg-[#fafafa]">
+                    <td class="px-5 py-3">
+                        <p class="text-sm text-black">{{ contrib.member.get_full_name }}</p>
+                    </td>
+                    <td class="px-5 py-3">
+                        <span class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700">
+                            {{ contrib.category.name }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3 text-sm text-gray">{{ contrib.date|date:"d M Y" }}</td>
+                    <td class="px-5 py-3 text-xs text-gray">{{ contrib.get_frequency_display }}</td>
+                    <td class="px-5 py-3 text-xs text-gray">{{ contrib.get_payment_method_display }}</td>
+                    <td class="px-5 py-3 text-xs text-gray">{{ contrib.receipt_number|default:"-" }}</td>
+                    <td class="px-5 py-3 text-right text-sm font-medium text-black">${{ contrib.amount|floatformat:2 }}</td>
+                    <td class="px-5 py-3 text-right whitespace-nowrap">
+                        <a href="{% url 'finance:contribution_edit' contrib.id %}" class="text-xs text-gray hover:text-black mr-3">
+                            <i class="fa-solid fa-pen"></i>
+                        </a>
+                        <form method="POST" action="{% url 'finance:contribution_delete' contrib.id %}" class="inline"
+                              onsubmit="return confirm('¿Eliminar esta contribución?')">
+                            {% csrf_token %}
+                            <button type="submit" class="text-xs text-gray hover:text-red-600">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-5 py-12 text-center">
+                        <i class="fa-solid fa-hand-holding-heart text-gray text-3xl mb-3"></i>
+                        <p class="text-sm text-gray mb-2">No hay contribuciones registradas</p>
+                        <a href="{% url 'finance:contribution_create' %}" class="text-xs text-black hover:underline">Registrar primera contribución &rarr;</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

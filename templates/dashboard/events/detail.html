@@ -487,8 +487,56 @@
                     <i class="fa-solid fa-users text-gray text-xs w-4 text-center"></i>
                     <span class="text-sm text-gray group-hover:text-black">Agregar Grupo</span>
                 </a>
+                {% if event.requires_lodging %}
+                <a href="{% url 'dashboard:event_lodging' event.id %}" class="flex items-center gap-3 px-3 py-2 rounded bg-primary/5 hover:bg-primary/10 transition-colors group">
+                    <i class="fa-solid fa-bed text-primary text-xs w-4 text-center"></i>
+                    <span class="text-sm text-primary font-medium">Gestionar Hospedaje</span>
+                </a>
+                {% endif %}
             </div>
         </div>
+
+        {% if event.requires_lodging %}
+        <!-- Lodging summary card -->
+        {% with lodging=event.lodging %}
+        <div class="bg-white border border-light-gray rounded p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-medium text-gray uppercase tracking-wider">Hospedaje</h3>
+                <a href="{% url 'dashboard:event_lodging' event.id %}" class="text-xs text-gray hover:text-black">Ver detalle &rarr;</a>
+            </div>
+            {% if lodging %}
+            <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray">Meta</span>
+                    <span class="font-medium text-black">{{ lodging.total_needed }} personas</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray">Capacidad ofrecida</span>
+                    <span class="font-medium text-black">{{ lodging.get_total_capacity }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray">Asignados</span>
+                    <span class="font-medium text-black">{{ lodging.get_total_assigned }}</span>
+                </div>
+                {% if lodging.total_needed > 0 %}
+                <div class="pt-2">
+                    <div class="w-full bg-light-gray rounded-full h-1.5">
+                        <div class="h-1.5 rounded-full {% if lodging.is_covered %}bg-green-500{% else %}bg-primary{% endif %}"
+                             style="width: {{ lodging.coverage_percentage }}%"></div>
+                    </div>
+                    <p class="text-xs text-gray mt-1 text-right">{{ lodging.coverage_percentage }}% cubierto</p>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-xs text-gray">Sin configurar aún.</p>
+            {% endif %}
+            <a href="{% url 'dashboard:event_lodging' event.id %}" class="mt-3 block text-center px-3 py-1.5 border border-black text-black text-xs hover:bg-black hover:text-white transition-colors">
+                <i class="fa-solid fa-bed mr-1"></i>Gestionar Hospedaje
+            </a>
+        </div>
+        {% endwith %}
+        {% endif %}
     </div>
 </div>
 

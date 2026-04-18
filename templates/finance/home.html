@@ -1,0 +1,132 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Finanzas | Alaba+{% endblock %}
+{% block page_title %}Finanzas{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Resumen Financiero</h2>
+        <p class="mt-1 text-sm text-gray">Ingresos, egresos y balance del mes actual</p>
+    </div>
+    <a href="{% url 'finance:transaction_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Nueva Transacción
+    </a>
+</div>
+
+<!-- Stats cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white border border-light-gray rounded p-5">
+        <p class="text-xs text-gray uppercase tracking-wider">Saldo Total</p>
+        <p class="mt-2 text-2xl font-medium text-black">${{ total_balance|floatformat:2 }}</p>
+        <p class="mt-1 text-xs text-gray">Todas las cuentas activas</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-5">
+        <p class="text-xs text-gray uppercase tracking-wider">Ingresos del Mes</p>
+        <p class="mt-2 text-2xl font-medium text-black">${{ monthly_income|floatformat:2 }}</p>
+        <p class="mt-1 text-xs text-gray">Transacciones completadas</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-5">
+        <p class="text-xs text-gray uppercase tracking-wider">Egresos del Mes</p>
+        <p class="mt-2 text-2xl font-medium text-black">${{ monthly_expense|floatformat:2 }}</p>
+        <p class="mt-1 text-xs text-gray">Transacciones completadas</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-5 {% if monthly_balance >= 0 %}border-l-4 border-l-green-500{% else %}border-l-4 border-l-red-500{% endif %}">
+        <p class="text-xs text-gray uppercase tracking-wider">Balance del Mes</p>
+        <p class="mt-2 text-2xl font-medium {% if monthly_balance >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+            ${{ monthly_balance|floatformat:2 }}
+        </p>
+        <p class="mt-1 text-xs text-gray">Ingresos - Egresos</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Últimas transacciones -->
+    <div class="lg:col-span-2 bg-white border border-light-gray rounded">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Últimas Transacciones</h3>
+            <a href="{% url 'finance:transactions_list' %}" class="text-xs text-gray hover:text-black">Ver todas &rarr;</a>
+        </div>
+        <div class="divide-y divide-light-gray">
+            {% for tx in recent_transactions %}
+            <div class="px-6 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded flex items-center justify-center {% if tx.transaction_type == 'income' %}bg-green-100{% else %}bg-red-100{% endif %}">
+                        <i class="fa-solid {% if tx.transaction_type == 'income' %}fa-arrow-down text-green-600{% else %}fa-arrow-up text-red-600{% endif %} text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-black">{{ tx.description|truncatechars:40 }}</p>
+                        <p class="text-xs text-gray">{{ tx.category.name }} · {{ tx.date|date:"d M Y" }}</p>
+                    </div>
+                </div>
+                <span class="text-sm font-medium {% if tx.transaction_type == 'income' %}text-green-600{% else %}text-red-600{% endif %}">
+                    {% if tx.transaction_type == 'income' %}+{% else %}-{% endif %}${{ tx.amount|floatformat:2 }}
+                </span>
+            </div>
+            {% empty %}
+            <div class="px-6 py-8 text-center text-sm text-gray">
+                No hay transacciones registradas aún.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Panel derecho -->
+    <div class="space-y-6">
+        <!-- Contribuciones del mes -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Contribuciones</h3>
+                <a href="{% url 'finance:contributions_list' %}" class="text-xs text-gray hover:text-black">Ver &rarr;</a>
+            </div>
+            <div class="px-6 py-4">
+                <p class="text-2xl font-medium text-black">${{ monthly_contributions|floatformat:2 }}</p>
+                <p class="text-xs text-gray mt-1">Diezmos y ofrendas del mes</p>
+                <a href="{% url 'finance:contribution_create' %}" class="mt-4 block text-center px-4 py-2 border border-black text-black text-xs hover:bg-black hover:text-white transition-colors">
+                    <i class="fa-solid fa-plus mr-1"></i>Registrar Contribución
+                </a>
+            </div>
+        </div>
+
+        <!-- Cuentas -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Cuentas</h3>
+                <a href="{% url 'finance:accounts_list' %}" class="text-xs text-gray hover:text-black">Ver &rarr;</a>
+            </div>
+            <div class="divide-y divide-light-gray">
+                {% for account in accounts %}
+                <div class="px-6 py-3 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-black">{{ account.name }}</p>
+                        <p class="text-xs text-gray">{{ account.get_account_type_display }}</p>
+                    </div>
+                    <span class="text-sm font-medium text-black">${{ account.current_balance|floatformat:2 }}</span>
+                </div>
+                {% empty %}
+                <div class="px-6 py-4 text-sm text-gray text-center">
+                    <a href="{% url 'finance:account_create' %}" class="text-black hover:underline">Crear primera cuenta &rarr;</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Ingresos por categoría -->
+        {% if income_by_category %}
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Ingresos por Categoría</h3>
+            </div>
+            <div class="px-6 py-4 space-y-3">
+                {% for item in income_by_category %}
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray">{{ item.category__name }}</span>
+                    <span class="text-xs font-medium text-black">${{ item.total|floatformat:2 }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

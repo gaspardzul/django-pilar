@@ -185,6 +185,14 @@
                           class="w-full border-b-2 border-t-0 border-x-0 border-black p-3 focus:border-dark-gray focus:outline-none"
                           placeholder="Notas adicionales sobre el evento...">{% if event %}{{ event.notes }}{% endif %}</textarea>
             </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <input type="checkbox" name="requires_lodging" id="requires_lodging"
+                       {% if event and event.requires_lodging %}checked{% endif %}
+                       class="w-4 h-4">
+                <label for="requires_lodging" class="text-sm text-black">Este evento requiere hospedaje</label>
+                <span class="text-xs text-gray">(habilitará el módulo de hospedaje en el detalle del evento)</span>
+            </div>
         </div>
         
         <!-- Actions -->

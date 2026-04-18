@@ -5,35 +5,36 @@
 
 {% block dashboard_content %}
 <!-- Header -->
-<div class="mb-8">
-    <div class="flex items-center justify-between mb-4">
-        <div>
-            <h2 class="text-xl font-medium text-black">Eventos de la Iglesia</h2>
-            <p class="mt-1 text-sm text-gray">Administra los eventos y sus grupos de trabajo</p>
-        </div>
-        <div class="flex items-center space-x-3">
-            <a href="{% url 'dashboard:events_import' %}" class="px-4 py-2 bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors">
-                <i class="fa-solid fa-file-import mr-2"></i>Importar
-            </a>
-            <a href="{% url 'dashboard:events_export' %}?{{ request.GET.urlencode }}" class="px-4 py-2 bg-green-600 text-white text-sm hover:bg-green-700 transition-colors">
-                <i class="fa-solid fa-file-excel mr-2"></i>Exportar
-            </a>
-            <a href="{% url 'dashboard:event_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
-                <i class="fa-solid fa-plus mr-2"></i>Agregar Evento
-            </a>
-        </div>
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Eventos de la Iglesia</h2>
+        <p class="mt-1 text-sm text-gray">Administra los eventos y sus grupos de trabajo</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <a href="{% url 'dashboard:events_import' %}" class="px-4 py-2 bg-blue-600 text-white text-sm hover:bg-blue-700 transition-colors">
+            <i class="fa-solid fa-file-import mr-2"></i>Importar
+        </a>
+        <a href="{% url 'dashboard:events_export' %}?{{ request.GET.urlencode }}" class="px-4 py-2 bg-green-600 text-white text-sm hover:bg-green-700 transition-colors">
+            <i class="fa-solid fa-file-excel mr-2"></i>Exportar
+        </a>
+        <a href="{% url 'dashboard:event_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+            <i class="fa-solid fa-plus mr-2"></i>Agregar Evento
+        </a>
     </div>
 </div>
 
-<!-- Filters -->
+<!-- Filters + view toggle -->
 <div class="mb-6 bg-white border border-light-gray rounded p-4">
-    <form method="GET" class="flex flex-wrap gap-4">
-        <div class="flex-1 min-w-[200px]">
-            <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar eventos..." 
-                   class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+    <form method="GET" class="flex flex-wrap gap-4 items-end">
+        <!-- preserve view mode across filter submits -->
+        <input type="hidden" name="view" value="{{ view_mode }}">
+
+        <div class="flex-1 min-w-48">
+            <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Buscar eventos..."
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
         </div>
-        <div class="min-w-[150px]">
-            <select name="status" class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+        <div class="min-w-36">
+            <select name="status" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
                 <option value="">Todos los Estados</option>
                 <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Borrador</option>
                 <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Publicado</option>
@@ -42,8 +43,8 @@
                 <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelado</option>
             </select>
         </div>
-        <div class="min-w-[150px]">
-            <select name="type" class="w-full border-b-2 border-t-0 border-x-0 border-black p-2 focus:border-dark-gray focus:outline-none text-sm">
+        <div class="min-w-36">
+            <select name="type" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
                 <option value="">Todos los Tipos</option>
                 <option value="service" {% if type_filter == 'service' %}selected{% endif %}>Servicio</option>
                 <option value="conference" {% if type_filter == 'conference' %}selected{% endif %}>Conferencia</option>
@@ -55,38 +56,64 @@
             </select>
         </div>
         <button type="submit" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
-            <i class="fa-solid fa-filter mr-2"></i>Filtrar
+            <i class="fa-solid fa-filter mr-1"></i>Filtrar
         </button>
         {% if search_query or status_filter or type_filter %}
-        <a href="{% url 'dashboard:events_list' %}" class="px-4 py-2 border border-light-gray text-sm hover:bg-[#fafafa] transition-colors">
+        <a href="{% url 'dashboard:events_list' %}?view={{ view_mode }}" class="px-4 py-2 border border-light-gray text-sm hover:bg-[#fafafa] transition-colors">
             Limpiar
         </a>
         {% endif %}
+
+        <!-- View toggle -->
+        <div class="ml-auto flex items-center gap-1 border border-light-gray rounded overflow-hidden">
+            <a href="?{{ request.GET.urlencode }}&view=card"
+               class="px-3 py-2 text-sm transition-colors {% if view_mode == 'card' %}bg-black text-white{% else %}text-gray hover:bg-[#fafafa]{% endif %}">
+                <i class="fa-solid fa-grip"></i>
+            </a>
+            <a href="?{{ request.GET.urlencode }}&view=table"
+               class="px-3 py-2 text-sm transition-colors {% if view_mode == 'table' %}bg-black text-white{% else %}text-gray hover:bg-[#fafafa]{% endif %}">
+                <i class="fa-solid fa-list"></i>
+            </a>
+        </div>
     </form>
 </div>
 
 <!-- Stats -->
-<div class="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
     <div class="bg-white border border-light-gray rounded p-4">
-        <p class="text-xs text-gray uppercase tracking-wider">Total Eventos</p>
-        <p class="mt-2 text-2xl font-medium text-black">{{ total_events }}</p>
+        <p class="text-xs text-gray uppercase tracking-wider">Total</p>
+        <p class="mt-1 text-2xl font-medium text-black">{{ total_events }}</p>
     </div>
     <div class="bg-white border border-light-gray rounded p-4">
         <p class="text-xs text-gray uppercase tracking-wider">Resultados</p>
-        <p class="mt-2 text-2xl font-medium text-black">{{ events|length }}</p>
+        <p class="mt-1 text-2xl font-medium text-black">{{ events|length }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Con Hospedaje</p>
+        <p class="mt-1 text-2xl font-medium text-black">{{ events_with_lodging }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Hospedaje Pendiente</p>
+        <p class="mt-1 text-2xl font-medium {% if lodging_pending > 0 %}text-yellow-600{% else %}text-black{% endif %}">{{ lodging_pending }}</p>
     </div>
 </div>
 
-<!-- Events Grid -->
+{% if events %}
+
+<!-- ═══════════════════════════════════════════════════════ CARD VIEW -->
+{% if view_mode == 'card' %}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {% if events %}
-        {% for event in events %}
-        <a href="{% url 'dashboard:event_detail' event.id %}" class="bg-white border border-light-gray rounded p-6 hover:border-primary transition-colors group">
-            <div class="flex items-start justify-between mb-4">
-                <div class="w-12 h-12 bg-primary rounded flex items-center justify-center flex-shrink-0">
-                    <i class="fa-solid fa-calendar-days text-white text-lg"></i>
+    {% for event in events %}
+    <div class="bg-white border border-light-gray rounded hover:border-primary transition-colors flex flex-col
+        {% if event.requires_lodging %}border-t-2 border-t-primary{% endif %}">
+
+        <!-- Card body (clickable) -->
+        <a href="{% url 'dashboard:event_detail' event.id %}" class="p-5 flex-1 block group">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-10 h-10 bg-primary rounded flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-calendar-days text-white"></i>
                 </div>
-                <span class="px-2 py-1 text-xs rounded 
+                <span class="px-2 py-0.5 text-xs rounded
                     {% if event.status == 'published' %}bg-green-100 text-green-800
                     {% elif event.status == 'ongoing' %}bg-blue-100 text-blue-800
                     {% elif event.status == 'completed' %}bg-gray-100 text-gray-800
@@ -95,27 +122,25 @@
                     {{ event.get_status_display_es }}
                 </span>
             </div>
-            
-            <h3 class="text-lg font-medium text-black group-hover:underline">{{ event.name }}</h3>
-            
-            <div class="mt-3 space-y-2">
-                <div class="flex items-center gap-2 text-sm">
-                    <i class="fa-solid fa-calendar text-gray text-xs w-4"></i>
-                    <span class="text-gray">{{ event.start_date|date:"d M Y, H:i" }}</span>
+
+            <h3 class="text-sm font-medium text-black group-hover:underline leading-snug">{{ event.name }}</h3>
+
+            <div class="mt-3 space-y-1.5">
+                <div class="flex items-center gap-2 text-xs text-gray">
+                    <i class="fa-solid fa-calendar w-3.5 text-center"></i>
+                    {{ event.start_date|date:"d M Y, H:i" }}
                 </div>
-                
-                <div class="flex items-center gap-2 text-sm">
-                    <i class="fa-solid fa-location-dot text-gray text-xs w-4"></i>
-                    <span class="text-gray line-clamp-1">{{ event.location }}</span>
+                <div class="flex items-center gap-2 text-xs text-gray">
+                    <i class="fa-solid fa-location-dot w-3.5 text-center"></i>
+                    <span class="truncate">{{ event.location }}</span>
                 </div>
-                
-                <div class="flex items-center gap-2 text-sm">
-                    <i class="fa-solid fa-users text-gray text-xs w-4"></i>
-                    <span class="text-gray">{{ event.get_total_workers }} trabajadores</span>
+                <div class="flex items-center gap-2 text-xs text-gray">
+                    <i class="fa-solid fa-users w-3.5 text-center"></i>
+                    {{ event.get_total_workers }} trabajadores
                 </div>
             </div>
-            
-            <div class="mt-4 pt-4 border-t border-light-gray flex items-center justify-between">
+
+            <div class="mt-3 pt-3 border-t border-light-gray flex items-center justify-between">
                 <span class="text-xs text-gray">{{ event.get_event_type_display }}</span>
                 {% if event.is_free_entry %}
                 <span class="text-xs text-green-600">Entrada Libre</span>
@@ -124,15 +149,133 @@
                 {% endif %}
             </div>
         </a>
-        {% endfor %}
-    {% else %}
-        <div class="col-span-full bg-white border border-light-gray rounded p-12 text-center">
-            <i class="fa-solid fa-calendar-days text-gray text-3xl mb-3"></i>
-            <p class="text-sm text-gray mb-2">No se encontraron eventos</p>
-            <a href="{% url 'dashboard:event_create' %}" class="text-xs text-black hover:underline">
-                Agregar tu primer evento &rarr;
-            </a>
-        </div>
-    {% endif %}
+
+        <!-- Lodging badge (only if requires_lodging) -->
+        {% if event.requires_lodging %}
+        <a href="{% url 'dashboard:event_lodging' event.id %}"
+           class="flex items-center justify-between px-5 py-2.5 bg-primary/5 border-t border-primary/20 hover:bg-primary/10 transition-colors">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-bed text-primary text-xs"></i>
+                <span class="text-xs font-medium text-primary">Hospedaje</span>
+            </div>
+            {% with lodging=event.lodging %}
+            {% if lodging %}
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-medium {% if lodging.is_covered %}text-green-600{% else %}text-yellow-600{% endif %}">
+                    {{ lodging.get_total_capacity }}/{{ lodging.total_needed }}
+                </span>
+                <div class="w-16 bg-light-gray rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full {% if lodging.is_covered %}bg-green-500{% else %}bg-yellow-400{% endif %}"
+                         style="width: {{ lodging.coverage_percentage }}%"></div>
+                </div>
+                {% if lodging.is_covered %}
+                <i class="fa-solid fa-circle-check text-green-500 text-xs"></i>
+                {% else %}
+                <i class="fa-solid fa-circle-exclamation text-yellow-500 text-xs"></i>
+                {% endif %}
+            </div>
+            {% else %}
+            <span class="text-xs text-gray">Sin configurar</span>
+            {% endif %}
+            {% endwith %}
+        </a>
+        {% endif %}
+    </div>
+    {% endfor %}
 </div>
+
+<!-- ═══════════════════════════════════════════════════════ TABLE VIEW -->
+{% else %}
+<div class="bg-white border border-light-gray rounded">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="border-b border-light-gray bg-[#fafafa]">
+                <tr>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Evento</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Fecha</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Tipo</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Estado</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Trabajadores</th>
+                    <th class="px-5 py-3 text-left text-xs font-medium text-gray uppercase tracking-wider">Hospedaje</th>
+                    <th class="px-5 py-3 text-right text-xs font-medium text-gray uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-light-gray">
+                {% for event in events %}
+                <tr class="hover:bg-[#fafafa] transition-colors">
+                    <td class="px-5 py-3">
+                        <a href="{% url 'dashboard:event_detail' event.id %}" class="text-sm font-medium text-black hover:underline">
+                            {{ event.name }}
+                        </a>
+                        <p class="text-xs text-gray truncate max-w-xs">{{ event.location }}</p>
+                    </td>
+                    <td class="px-5 py-3 text-xs text-gray whitespace-nowrap">
+                        {{ event.start_date|date:"d M Y" }}<br>
+                        <span class="text-gray">{{ event.start_date|date:"H:i" }}</span>
+                    </td>
+                    <td class="px-5 py-3 text-xs text-gray">{{ event.get_event_type_display }}</td>
+                    <td class="px-5 py-3">
+                        <span class="px-2 py-0.5 text-xs rounded
+                            {% if event.status == 'published' %}bg-green-100 text-green-800
+                            {% elif event.status == 'ongoing' %}bg-blue-100 text-blue-800
+                            {% elif event.status == 'completed' %}bg-gray-100 text-gray-800
+                            {% elif event.status == 'cancelled' %}bg-red-100 text-red-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ event.get_status_display_es }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3 text-sm text-gray">{{ event.get_total_workers }}</td>
+                    <td class="px-5 py-3">
+                        {% if event.requires_lodging %}
+                        <a href="{% url 'dashboard:event_lodging' event.id %}" class="flex items-center gap-2 group">
+                            <i class="fa-solid fa-bed text-primary text-xs"></i>
+                            {% with lodging=event.lodging %}
+                            {% if lodging %}
+                            <span class="text-xs font-medium {% if lodging.is_covered %}text-green-600{% else %}text-yellow-600{% endif %}">
+                                {{ lodging.get_total_capacity }}/{{ lodging.total_needed }}
+                            </span>
+                            <div class="w-14 bg-light-gray rounded-full h-1.5">
+                                <div class="h-1.5 rounded-full {% if lodging.is_covered %}bg-green-500{% else %}bg-yellow-400{% endif %}"
+                                     style="width: {{ lodging.coverage_percentage }}%"></div>
+                            </div>
+                            {% if lodging.is_covered %}
+                            <i class="fa-solid fa-circle-check text-green-500 text-xs"></i>
+                            {% else %}
+                            <i class="fa-solid fa-circle-exclamation text-yellow-500 text-xs"></i>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-xs text-gray group-hover:text-primary">Configurar</span>
+                            {% endif %}
+                            {% endwith %}
+                        </a>
+                        {% else %}
+                        <span class="text-xs text-gray">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-3 text-right whitespace-nowrap">
+                        <a href="{% url 'dashboard:event_detail' event.id %}" class="text-xs text-gray hover:text-black mr-3">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                        <a href="{% url 'dashboard:event_edit' event.id %}" class="text-xs text-gray hover:text-black">
+                            <i class="fa-solid fa-pen"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="bg-white border border-light-gray rounded p-12 text-center">
+    <i class="fa-solid fa-calendar-days text-gray text-3xl mb-3"></i>
+    <p class="text-sm text-gray mb-2">No se encontraron eventos</p>
+    <a href="{% url 'dashboard:event_create' %}" class="text-xs text-black hover:underline">
+        Agregar tu primer evento &rarr;
+    </a>
+</div>
+{% endif %}
+
 {% endblock %}
