@@ -69,6 +69,7 @@ urlpatterns = [
 
     # Event Lodging
     path('events/<uuid:event_id>/lodging/', views.event_lodging, name='event_lodging'),
+    path('events/<uuid:event_id>/lodging/report/', views.event_lodging_report, name='event_lodging_report'),
     path('events/<uuid:event_id>/lodging/add-host/', views.event_lodging_add_host, name='event_lodging_add_host'),
     path('events/<uuid:event_id>/lodging/remove-host/<uuid:host_id>/', views.event_lodging_remove_host, name='event_lodging_remove_host'),
     path('events/<uuid:event_id>/lodging/host/<uuid:host_id>/add-guest/', views.event_lodging_add_guest, name='event_lodging_add_guest'),

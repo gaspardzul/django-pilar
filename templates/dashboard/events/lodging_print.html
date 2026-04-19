@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospedaje — {{ event.name }}</title>
+    <script nonce="{{ csp_nonce }}" src="https://cdn.tailwindcss.com"></script>
+    <style nonce="{{ csp_nonce }}">
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+        body { font-family: 'Space Grotesk', sans-serif; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .print-break { page-break-before: always; }
+            .avoid-break { page-break-inside: avoid; }
+            body { font-size: 11px; }
+            @page { margin: 1.5cm; }
+        }
+    </style>
+</head>
+<body class="bg-white text-black p-8 max-w-4xl mx-auto">
+
+    <!-- Print button (hidden on actual print) -->
+    <div class="no-print mb-6 flex items-center justify-between border-b border-gray-200 pb-4">
+        <a href="{% url 'dashboard:event_lodging_report' event.id %}" class="text-sm text-gray-500 hover:text-black">
+            ← Volver al reporte
+        </a>
+        <button onclick="window.print()"
+                class="px-5 py-2 bg-black text-white text-sm hover:bg-gray-800 transition-colors">
+            🖨 Imprimir / Guardar PDF
+        </button>
+    </div>
+
+    <!-- ── ENCABEZADO ── -->
+    <div class="avoid-break mb-6">
+        <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Reporte de Hospedaje</p>
+        <h1 class="text-2xl font-bold text-black">{{ event.name }}</h1>
+        <p class="text-sm text-gray-500 mt-1">
+            {{ event.start_date|date:"d \d\e F \d\e Y" }}
+            {% if event.end_date %} — {{ event.end_date|date:"d \d\e F" }}{% endif %}
+            &nbsp;·&nbsp; {{ event.location }}
+        </p>
+        {% if lodging.notes %}
+        <p class="mt-2 text-sm text-gray-600 italic">{{ lodging.notes }}</p>
+        {% endif %}
+        <p class="text-xs text-gray-400 mt-1">Generado: {% now "d/m/Y H:i" %}</p>
+    </div>
+
+    <!-- ── RESUMEN ── -->
+    <div class="avoid-break mb-6 grid grid-cols-4 gap-3 text-center">
+        <div class="border border-gray-200 rounded p-3">
+            <p class="text-2xl font-bold">{{ lodging.total_needed }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">Meta</p>
+        </div>
+        <div class="border border-gray-200 rounded p-3">
+            <p class="text-2xl font-bold">{{ total_capacity }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">Lugares ofrecidos</p>
+        </div>
+        <div class="border border-gray-200 rounded p-3">
+            <p class="text-2xl font-bold">{{ total_assigned }}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">Asignados</p>
+        </div>
+        <div class="border rounded p-3 {% if unassigned > 0 %}border-yellow-400{% else %}border-green-400{% endif %}">
+            <p class="text-2xl font-bold {% if unassigned > 0 %}text-yellow-600{% else %}text-green-600{% endif %}">
+                {{ unassigned }}
+            </p>
+            <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">Sin asignar</p>
+        </div>
+    </div>
+
+    <!-- Coverage bar -->
+    {% if lodging.total_needed > 0 %}
+    <div class="avoid-break mb-6">
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Cobertura</span>
+            <span class="font-medium">{{ coverage_percentage }}% — {% if lodging.is_covered %}✓ Meta cubierta{% else %}⚠ Falta cobertura{% endif %}</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2.5">
+            <div class="h-2.5 rounded-full {% if lodging.is_covered %}bg-green-500{% else %}bg-yellow-400{% endif %}"
+                 style="width: {{ coverage_percentage }}%"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <hr class="border-gray-200 mb-6">
+
+    <!-- ── SECCIÓN 1: DIRECTORIO DE CASAS ── -->
+    <h2 class="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">1. Directorio de Casas</h2>
+
+    {% for host in hosts %}
+    <div class="avoid-break mb-4 border border-gray-200 rounded">
+        <div class="flex items-start justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <div>
+                <p class="font-semibold text-black">
+                    <span class="inline-block w-6 h-6 bg-black text-white text-xs font-bold rounded text-center leading-6 mr-2">{{ forloop.counter }}</span>
+                    {{ host.get_display_name }}
+                </p>
+                <p class="text-xs text-gray-500 mt-0.5 ml-8">📍 {{ host.address }}</p>
+                {% if host.notes %}
+                <p class="text-xs text-gray-500 mt-0.5 ml-8 italic">ℹ {{ host.notes }}</p>
+                {% endif %}
+            </div>
+            <div class="text-right flex-shrink-0 ml-4">
+                <p class="font-bold {% if host.is_full %}text-green-600{% else %}text-yellow-600{% endif %}">
+                    {{ host.assigned_count }}/{{ host.capacity }}
+                </p>
+                <p class="text-xs text-gray-400">{% if host.is_full %}Lleno{% else %}{{ host.available_spots }} libre(s){% endif %}</p>
+            </div>
+        </div>
+        {% if host.guests.all %}
+        <div class="divide-y divide-gray-100">
+            {% for guest in host.guests.all %}
+            <div class="px-4 py-2 flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium">{{ guest.get_display_name }}</p>
+                    <p class="text-xs text-gray-500">
+                        {{ guest.adults }} adulto{% if guest.adults != 1 %}s{% endif %}
+                        {% if guest.children > 0 %}+ {{ guest.children }} niño{% if guest.children != 1 %}s{% endif %}{% endif %}
+                        {% if guest.notes %} · <em>{{ guest.notes }}</em>{% endif %}
+                    </p>
+                </div>
+                <span class="text-sm font-semibold">{{ guest.total_people }} pers.</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="px-4 py-2 text-xs text-gray-400 italic">Sin grupos asignados.</p>
+        {% endif %}
+    </div>
+    {% empty %}
+    <p class="text-sm text-gray-400 italic">No hay casas registradas.</p>
+    {% endfor %}
+
+    <!-- ── SECCIÓN 2: LISTA DE GRUPOS (para coordinador en puerta) ── -->
+    <div class="print-break mt-8">
+        <h2 class="text-sm font-bold uppercase tracking-widest text-gray-400 mb-2">2. Lista de Grupos — Control de Llegadas</h2>
+        <p class="text-xs text-gray-400 mb-4 no-print">Marca ✓ cuando el grupo llegue y ya fue enviado a su casa.</p>
+
+        <table class="w-full text-sm border-collapse">
+            <thead>
+                <tr class="bg-black text-white">
+                    <th class="px-3 py-2 text-left text-xs font-medium">#</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium">Representante</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium">Adultos</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium">Niños</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium">Total</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium">Casa Anfitriona</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium">Dirección</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium">✓ Llegó</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in all_guests %}
+                <tr class="avoid-break border-b border-gray-100 {% cycle 'bg-white' 'bg-gray-50' %}">
+                    <td class="px-3 py-2 text-gray-400">{{ forloop.counter }}</td>
+                    <td class="px-3 py-2 font-medium">
+                        {{ item.guest.get_display_name }}
+                        {% if item.guest.notes %}<br><span class="text-xs text-gray-400 italic">{{ item.guest.notes }}</span>{% endif %}
+                    </td>
+                    <td class="px-3 py-2 text-center">{{ item.guest.adults }}</td>
+                    <td class="px-3 py-2 text-center">{{ item.guest.children }}</td>
+                    <td class="px-3 py-2 text-center font-semibold">{{ item.guest.total_people }}</td>
+                    <td class="px-3 py-2 font-medium">{{ item.host.get_display_name }}</td>
+                    <td class="px-3 py-2 text-xs text-gray-500">{{ item.host.address }}</td>
+                    <td class="px-3 py-2 text-center">
+                        <span class="inline-block w-5 h-5 border-2 border-gray-400 rounded"></span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-3 py-6 text-center text-gray-400 italic">Sin grupos asignados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if all_guests %}
+            <tfoot>
+                <tr class="bg-gray-100 font-semibold">
+                    <td colspan="4" class="px-3 py-2 text-right text-xs text-gray-500">TOTAL PERSONAS:</td>
+                    <td class="px-3 py-2 text-center">{{ total_assigned }}</td>
+                    <td colspan="3"></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- Auto-trigger print dialog -->
+    <script nonce="{{ csp_nonce }}">
+        window.addEventListener('load', function() {
+            // Small delay to let fonts/styles load
+            setTimeout(function() { window.print(); }, 600);
+        });
+    </script>
+</body>
+</html>

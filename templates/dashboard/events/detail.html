@@ -534,6 +534,9 @@
             <a href="{% url 'dashboard:event_lodging' event.id %}" class="mt-3 block text-center px-3 py-1.5 border border-black text-black text-xs hover:bg-black hover:text-white transition-colors">
                 <i class="fa-solid fa-bed mr-1"></i>Gestionar Hospedaje
             </a>
+            <a href="{% url 'dashboard:event_lodging_report' event.id %}" class="mt-2 block text-center px-3 py-1.5 border border-light-gray text-gray text-xs hover:bg-[#fafafa] transition-colors">
+                <i class="fa-solid fa-file-lines mr-1"></i>Ver Reporte
+            </a>
         </div>
         {% endwith %}
         {% endif %}

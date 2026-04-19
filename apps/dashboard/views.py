@@ -1141,6 +1141,39 @@ def event_lodging_add_guest(request, event_id, host_id):
 
 
 @login_required
+@require_http_methods(['GET'])
+def event_lodging_report(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    lodging = get_object_or_404(EventLodging, event=event)
+    hosts = lodging.hosts.filter(active=True).prefetch_related('guests__representative').select_related('host')
+
+    # Build unassigned count: total_needed - total_assigned
+    total_assigned = lodging.get_total_assigned()
+    unassigned = max((lodging.total_needed or 0) - total_assigned, 0)
+
+    # All guests flat list for the groups view
+    all_guests = []
+    for host in hosts:
+        for guest in host.guests.all():
+            all_guests.append({'guest': guest, 'host': host})
+
+    context = {
+        'event': event,
+        'lodging': lodging,
+        'hosts': hosts,
+        'all_guests': all_guests,
+        'total_capacity': lodging.get_total_capacity(),
+        'total_assigned': total_assigned,
+        'available_spots': lodging.get_available_spots(),
+        'unassigned': unassigned,
+        'coverage_percentage': lodging.coverage_percentage(),
+    }
+    print_mode = request.GET.get('print') == '1'
+    template = 'dashboard/events/lodging_print.html' if print_mode else 'dashboard/events/lodging_report.html'
+    return render(request, template, context)
+
+
+@login_required
 @require_http_methods(['POST'])
 def event_lodging_remove_guest(request, event_id, guest_id):
     guest = get_object_or_404(LodgingGuest, id=guest_id, host__lodging__event_id=event_id)
