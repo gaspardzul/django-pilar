@@ -4,15 +4,10 @@
 {% block page_title %}Reporte de Hospedaje{% endblock %}
 
 {% block extra_head %}
+<link nonce="{{ csp_nonce }}" rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style nonce="{{ csp_nonce }}">
-@media print {
-    /* Hide everything except the report content */
-    aside, header, .no-print { display: none !important; }
-    .lg\:pl-56 { padding-left: 0 !important; }
-    body { background: white !important; }
-    .print-break { page-break-before: always; }
-    .print-avoid-break { page-break-inside: avoid; }
-}
+    #lodging-map { height: 420px; width: 100%; overflow: hidden; }
+    .leaflet-container { height: 100%; width: 100%; }
 </style>
 {% endblock %}
 

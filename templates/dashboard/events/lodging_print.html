@@ -96,6 +96,9 @@
                     {{ host.get_display_name }}
                 </p>
                 <p class="text-xs text-gray-500 mt-0.5 ml-8">📍 {{ host.address }}</p>
+                {% if host.latitude and host.longitude %}
+                <p class="text-xs text-gray-400 mt-0.5 ml-8 font-mono">🗺 {{ host.latitude }}, {{ host.longitude }}</p>
+                {% endif %}
                 {% if host.notes %}
                 <p class="text-xs text-gray-500 mt-0.5 ml-8 italic">ℹ {{ host.notes }}</p>
                 {% endif %}

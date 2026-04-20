@@ -3,6 +3,10 @@
 {% block title %}Hospedaje - {{ event.name }}{% endblock %}
 {% block page_title %}Hospedaje{% endblock %}
 
+{% block extra_head %}
+<link nonce="{{ csp_nonce }}" rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+{% endblock %}
+
 {% block dashboard_content %}
 <div class="mb-6 flex items-center justify-between">
     <a href="{% url 'dashboard:event_detail' event.id %}" class="text-xs text-gray hover:text-black">
@@ -125,11 +129,35 @@
                        class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
             </div>
         </div>
-        <div class="mt-4">
-            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Notas del espacio</label>
-            <input type="text" name="notes" placeholder="Ej: 2 hamacas, 1 cama, requieren traer colchas..."
-                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        <!-- Coordenadas + notas -->
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    <i class="fa-solid fa-map-pin mr-1"></i>Latitud
+                </label>
+                <input type="text" name="latitude" id="new_host_lat" placeholder="Ej: 20.9674"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent font-mono">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">
+                    <i class="fa-solid fa-map-pin mr-1"></i>Longitud
+                </label>
+                <input type="text" name="longitude" id="new_host_lng" placeholder="Ej: -89.6237"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent font-mono">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Notas del espacio</label>
+                <input type="text" name="notes" placeholder="Ej: 2 hamacas, 1 cama, traer colchas..."
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
         </div>
+        <!-- Helper to get coords from map click -->
+        <p class="text-xs text-gray mt-2">
+            <i class="fa-solid fa-circle-info mr-1"></i>
+            Puedes obtener las coordenadas haciendo clic derecho en
+            <a href="https://www.google.com/maps" target="_blank" class="underline hover:text-black">Google Maps</a>
+            o usando el mapa de abajo si ya hay anfitriones registrados.
+        </p>
         <div class="mt-4">
             <button type="submit" class="px-5 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
                 <i class="fa-solid fa-plus mr-2"></i>Agregar Anfitrión
@@ -166,12 +194,85 @@
                         {% if host.is_full %}Lleno{% else %}{{ host.available_spots }} disponible(s){% endif %}
                     </p>
                 </div>
+                <!-- Edit button -->
+                <a href="#edit-host-{{ host.id }}" class="text-xs text-gray hover:text-black p-1" title="Editar">
+                    <i class="fa-solid fa-pen"></i>
+                </a>
                 <form method="POST" action="{% url 'dashboard:event_lodging_remove_host' event.id host.id %}"
                       onsubmit="return confirm('¿Eliminar este anfitrión y todos sus huéspedes?')">
                     {% csrf_token %}
                     <button type="submit" class="text-xs text-gray hover:text-red-600 p-1">
                         <i class="fa-solid fa-trash"></i>
                     </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit host modal (CSS :target) -->
+        <div id="edit-host-{{ host.id }}" class="fixed inset-0 z-50 hidden [&:target]:flex items-center justify-center bg-black/40">
+            <div class="bg-white rounded max-w-lg w-full mx-4 shadow-xl">
+                <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+                    <h3 class="text-sm font-medium text-black uppercase tracking-wider">Editar Anfitrión</h3>
+                    <a href="#_" class="text-gray hover:text-black"><i class="fa-solid fa-xmark"></i></a>
+                </div>
+                <form method="POST" action="{% url 'dashboard:event_lodging_edit_host' event.id host.id %}" class="p-6 space-y-4">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Miembro Anfitrión</label>
+                            <select name="host_member" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                                <option value="">No es miembro registrado</option>
+                                {% for m in members %}
+                                <option value="{{ m.id }}" {% if host.host_id == m.id %}selected{% endif %}>{{ m.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Nombre (si no es miembro)</label>
+                            <input type="text" name="host_name" value="{{ host.host_name }}"
+                                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Dirección *</label>
+                        <input type="text" name="address" value="{{ host.address }}" required
+                               class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Capacidad *</label>
+                            <input type="number" name="capacity" value="{{ host.capacity }}" required min="1"
+                                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Latitud</label>
+                            <input type="text" name="latitude" value="{{ host.latitude }}" placeholder="20.9674"
+                                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Longitud</label>
+                            <input type="text" name="longitude" value="{{ host.longitude }}" placeholder="-89.6237"
+                                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent font-mono">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Notas del espacio</label>
+                        <input type="text" name="notes" value="{{ host.notes }}"
+                               placeholder="Ej: 2 hamacas, 1 cama, traer colchas..."
+                               class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" name="active" id="active-{{ host.id }}" {% if host.active %}checked{% endif %} class="w-4 h-4">
+                        <label for="active-{{ host.id }}" class="text-sm text-black">Espacio disponible</label>
+                    </div>
+                    <div class="flex items-center gap-3 pt-2 border-t border-light-gray">
+                        <button type="submit" class="px-5 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                            Guardar Cambios
+                        </button>
+                        <a href="#_" class="px-5 py-2 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">
+                            Cancelar
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>
@@ -276,4 +377,108 @@
 </div>
 {% endif %}
 
+<!-- ══ MAPA DE ANFITRIONES ══ -->
+{% with mapped_hosts=hosts %}
+{% if mapped_hosts %}
+<div class="mt-8 bg-white border border-light-gray rounded" style="overflow:hidden;">
+    <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+        <h3 class="text-sm font-medium text-black uppercase tracking-wider">
+            <i class="fa-solid fa-map-location-dot mr-2"></i>Mapa de Casas Anfitrionas
+        </h3>
+        <span class="text-xs text-gray">CartoDB · Leaflet</span>
+    </div>
+    <div id="lodging-map" style="height:420px;width:100%;display:block;"></div>
+    <p class="px-6 py-2 text-xs text-gray border-t border-light-gray">
+        Solo se muestran anfitriones con coordenadas registradas.
+    </p>
+</div>
+{% endif %}
+{% endwith %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce }}" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script nonce="{{ csp_nonce }}">
+(function initMap() {
+    var hosts = [
+        {% for host in hosts %}{% if host.latitude and host.longitude %}
+        {
+            name: "{{ host.get_display_name|escapejs }}",
+            address: "{{ host.address|escapejs }}",
+            lat: parseFloat("{{ host.latitude }}"),
+            lng: parseFloat("{{ host.longitude }}"),
+            assigned: {{ host.assigned_count }},
+            capacity: {{ host.capacity }},
+            notes: "{{ host.notes|escapejs }}",
+            full: {% if host.is_full %}true{% else %}false{% endif %}
+        },
+        {% endif %}{% endfor %}
+    ];
+
+    var mapEl = document.getElementById('lodging-map');
+    if (!mapEl) return;
+
+    if (hosts.length === 0) {
+        mapEl.style.height = '80px';
+        mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:13px;">Ningún anfitrión tiene coordenadas registradas aún.</div>';
+        return;
+    }
+
+    // Wait until the element has real pixel dimensions
+    function tryInit(attempts) {
+        var rect = mapEl.getBoundingClientRect();
+        if (rect.width === 0 && attempts > 0) {
+            setTimeout(function() { tryInit(attempts - 1); }, 100);
+            return;
+        }
+
+        var map = L.map(mapEl);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        function makeIcon(color) {
+            return L.divIcon({
+                className: '',
+                html: '<div style="width:22px;height:22px;background:' + color + ';border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11],
+                popupAnchor: [0, -14]
+            });
+        }
+
+        var bounds = [];
+        hosts.forEach(function(h) {
+            var color = h.full ? '#22c55e' : '#f59e0b';
+            var marker = L.marker([h.lat, h.lng], { icon: makeIcon(color) }).addTo(map);
+            marker.bindPopup(
+                '<div style="font-family:sans-serif;min-width:180px;padding:4px">' +
+                '<p style="font-weight:700;margin:0 0 4px;font-size:14px">' + h.name + '</p>' +
+                '<p style="font-size:12px;color:#555;margin:0 0 6px">📍 ' + h.address + '</p>' +
+                '<p style="font-size:13px;font-weight:600;color:' + color + ';margin:0 0 4px">' +
+                h.assigned + '/' + h.capacity + ' personas' +
+                (h.full ? ' ✓ Lleno' : ' · ' + (h.capacity - h.assigned) + ' libre(s)') + '</p>' +
+                (h.notes ? '<p style="font-size:11px;color:#888;margin:0;font-style:italic">ℹ ' + h.notes + '</p>' : '') +
+                '</div>'
+            );
+            bounds.push([h.lat, h.lng]);
+        });
+
+        if (bounds.length === 1) {
+            map.setView(bounds[0], 15);
+        } else {
+            map.fitBounds(bounds, { padding: [40, 40] });
+        }
+
+        map.invalidateSize();
+    }
+
+    // Start trying after a short delay to let layout settle
+    setTimeout(function() { tryInit(10); }, 150);
+})();
+</script>
 {% endblock %}

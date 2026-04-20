@@ -1100,9 +1100,32 @@ def event_lodging_add_host(request, event_id):
         host_name=request.POST.get('host_name', ''),
         address=request.POST.get('address'),
         capacity=request.POST.get('capacity', 1),
+        latitude=request.POST.get('latitude', ''),
+        longitude=request.POST.get('longitude', ''),
         notes=request.POST.get('notes', ''),
     )
     messages.success(request, 'Anfitrión agregado exitosamente.')
+    return redirect('dashboard:event_lodging', event_id=event_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def event_lodging_edit_host(request, event_id, host_id):
+    host = get_object_or_404(LodgingHost, id=host_id, lodging__event_id=event_id)
+    member_id = request.POST.get('host_member')
+    host.host_id = member_id if member_id else None
+    host.host_name = request.POST.get('host_name', '')
+    host.address = request.POST.get('address', '')
+    host.capacity = request.POST.get('capacity', host.capacity)
+    host.latitude = request.POST.get('latitude', '')
+    host.longitude = request.POST.get('longitude', '')
+    host.notes = request.POST.get('notes', '')
+    host.active = request.POST.get('active') == 'on'
+    host.save()
+    # Recalculate in case capacity changed
+    host.assigned_count = sum(g.total_people() for g in host.guests.all())
+    host.save(update_fields=['assigned_count'])
+    messages.success(request, f'Casa de {host.get_display_name()} actualizada.')
     return redirect('dashboard:event_lodging', event_id=event_id)
 
 

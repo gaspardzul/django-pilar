@@ -625,6 +625,8 @@ class LodgingHost(models.Model):
         help_text='Si no es miembro registrado, escribe el nombre aquí',
     )
     address = models.TextField(verbose_name='Dirección / Ubicación')
+    latitude = models.CharField(max_length=20, blank=True, verbose_name='Latitud')
+    longitude = models.CharField(max_length=20, blank=True, verbose_name='Longitud')
     capacity = models.PositiveIntegerField(verbose_name='Capacidad (personas)')
     assigned_count = models.PositiveIntegerField(default=0, verbose_name='Personas asignadas')
     active = models.BooleanField(default=True, verbose_name='Disponible')
