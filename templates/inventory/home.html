@@ -1,0 +1,110 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Inventario | Alaba+{% endblock %}
+{% block page_title %}Inventario{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h2 class="text-xl font-medium text-black">Inventario</h2>
+        <p class="mt-1 text-sm text-gray">Control de equipo y artículos de la iglesia</p>
+    </div>
+    <a href="{% url 'inventory:item_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Nuevo Artículo
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Total Artículos</p>
+        <p class="mt-1 text-2xl font-medium text-black">{{ total_items }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Unidades</p>
+        <p class="mt-1 text-2xl font-medium text-black">{{ total_quantity }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Disponibles</p>
+        <p class="mt-1 text-2xl font-medium text-green-600">{{ available }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Prestados</p>
+        <p class="mt-1 text-2xl font-medium text-yellow-600">{{ lent }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Mantenimiento</p>
+        <p class="mt-1 text-2xl font-medium text-blue-600">{{ maintenance }}</p>
+    </div>
+    <div class="bg-white border border-light-gray rounded p-4">
+        <p class="text-xs text-gray uppercase tracking-wider">Extraviados</p>
+        <p class="mt-1 text-2xl font-medium text-red-600">{{ lost }}</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Categorías -->
+    <div class="bg-white border border-light-gray rounded">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Categorías</h3>
+            <a href="{% url 'inventory:categories_list' %}" class="text-xs text-gray hover:text-black">Gestionar &rarr;</a>
+        </div>
+        <div class="divide-y divide-light-gray">
+            {% for cat in categories %}
+            <div class="px-6 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    {% if cat.icon %}<i class="fa-solid {{ cat.icon }} text-gray text-xs w-4 text-center"></i>{% endif %}
+                    <span class="text-sm text-black">{{ cat.name }}</span>
+                </div>
+                <span class="text-xs text-gray bg-[#fafafa] px-2 py-0.5 rounded">{{ cat.items_count }}</span>
+            </div>
+            {% empty %}
+            <div class="px-6 py-4 text-sm text-gray text-center">
+                <a href="{% url 'inventory:category_create' %}" class="text-black hover:underline">Crear primera categoría &rarr;</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Últimos movimientos -->
+    <div class="lg:col-span-2 bg-white border border-light-gray rounded">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+            <h3 class="text-sm font-medium text-black uppercase tracking-wider">Últimos Movimientos</h3>
+            <a href="{% url 'inventory:items_list' %}" class="text-xs text-gray hover:text-black">Ver artículos &rarr;</a>
+        </div>
+        <div class="divide-y divide-light-gray">
+            {% for mov in recent_movements %}
+            <div class="px-6 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded flex items-center justify-center
+                        {% if mov.movement_type == 'checkout' %}bg-yellow-100
+                        {% elif mov.movement_type == 'return' %}bg-green-100
+                        {% elif mov.movement_type == 'maintenance' %}bg-blue-100
+                        {% elif mov.movement_type == 'lost' %}bg-red-100
+                        {% else %}bg-gray-100{% endif %}">
+                        <i class="fa-solid
+                            {% if mov.movement_type == 'checkout' %}fa-arrow-right-from-bracket text-yellow-600
+                            {% elif mov.movement_type == 'return' %}fa-arrow-right-to-bracket text-green-600
+                            {% elif mov.movement_type == 'maintenance' %}fa-wrench text-blue-600
+                            {% elif mov.movement_type == 'lost' %}fa-circle-exclamation text-red-600
+                            {% else %}fa-arrows-rotate text-gray-600{% endif %} text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-black">{{ mov.item.name }}</p>
+                        <p class="text-xs text-gray">
+                            {{ mov.get_movement_type_display }}
+                            {% if mov.member %} · {{ mov.member.get_full_name }}{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <span class="text-xs text-gray">{{ mov.date|date:"d M" }}</span>
+            </div>
+            {% empty %}
+            <div class="px-6 py-8 text-center text-sm text-gray">
+                No hay movimientos registrados aún.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

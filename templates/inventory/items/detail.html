@@ -1,0 +1,175 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ item.name }} | Inventario{% endblock %}
+{% block page_title %}{{ item.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6 flex items-center justify-between">
+    <a href="{% url 'inventory:items_list' %}" class="text-xs text-gray hover:text-black"><i class="fa-solid fa-arrow-left mr-1"></i>Artículos</a>
+    <a href="{% url 'inventory:item_edit' item.id %}" class="px-4 py-2 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">
+        <i class="fa-solid fa-pen mr-2"></i>Editar
+    </a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Info principal -->
+    <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white border border-light-gray rounded p-6">
+            <div class="flex items-start gap-4 mb-4">
+                <div class="w-14 h-14 bg-[#fafafa] rounded flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid {{ item.category.icon|default:'fa-box' }} text-gray text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-medium text-black">{{ item.name }}</h2>
+                    <p class="text-sm text-gray">{{ item.category.name }}</p>
+                    {% if item.code %}<p class="text-xs text-gray font-mono mt-1">{{ item.code }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider">Estado</p>
+                    <span class="mt-1 inline-block px-2 py-0.5 text-xs rounded
+                        {% if item.status == 'available' %}bg-green-100 text-green-700
+                        {% elif item.status == 'lent' %}bg-yellow-100 text-yellow-700
+                        {% elif item.status == 'maintenance' %}bg-blue-100 text-blue-700
+                        {% elif item.status == 'lost' %}bg-red-100 text-red-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {{ item.get_status_display }}
+                    </span>
+                </div>
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider">Condición</p>
+                    <p class="mt-1 text-sm text-black">{{ item.get_condition_display }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider">Cantidad</p>
+                    <p class="mt-1 text-sm text-black">{{ item.quantity }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider">Ubicación</p>
+                    <p class="mt-1 text-sm text-black">{{ item.location|default:"—" }}</p>
+                </div>
+            </div>
+
+            {% if item.description %}
+            <div class="mb-4">
+                <p class="text-xs text-gray uppercase tracking-wider mb-1">Descripción</p>
+                <p class="text-sm text-black">{{ item.description }}</p>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-light-gray">
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider">Responsable</p>
+                    <p class="mt-1 text-sm text-black">{% if item.assigned_to %}{{ item.assigned_to.get_full_name }}{% else %}Sin asignar{% endif %}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider">Fecha de compra</p>
+                    <p class="mt-1 text-sm text-black">{% if item.purchase_date %}{{ item.purchase_date|date:"d M Y" }}{% else %}—{% endif %}</p>
+                </div>
+                {% if item.purchase_price %}
+                <div>
+                    <p class="text-xs text-gray uppercase tracking-wider">Precio</p>
+                    <p class="mt-1 text-sm text-black">${{ item.purchase_price|floatformat:2 }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if item.notes %}
+            <div class="mt-4 pt-4 border-t border-light-gray">
+                <p class="text-xs text-gray uppercase tracking-wider mb-1">Notas</p>
+                <p class="text-sm text-gray">{{ item.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Historial de movimientos -->
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Historial de Movimientos</h3>
+            </div>
+            <div class="divide-y divide-light-gray">
+                {% for mov in movements %}
+                <div class="px-6 py-3 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded flex items-center justify-center
+                            {% if mov.movement_type == 'checkout' %}bg-yellow-100
+                            {% elif mov.movement_type == 'return' %}bg-green-100
+                            {% elif mov.movement_type == 'maintenance' %}bg-blue-100
+                            {% elif mov.movement_type == 'lost' %}bg-red-100
+                            {% else %}bg-gray-100{% endif %}">
+                            <i class="fa-solid
+                                {% if mov.movement_type == 'checkout' %}fa-arrow-right-from-bracket text-yellow-600
+                                {% elif mov.movement_type == 'return' %}fa-arrow-right-to-bracket text-green-600
+                                {% elif mov.movement_type == 'maintenance' %}fa-wrench text-blue-600
+                                {% elif mov.movement_type == 'lost' %}fa-circle-exclamation text-red-600
+                                {% else %}fa-arrows-rotate text-gray-600{% endif %} text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-black">{{ mov.get_movement_type_display }}</p>
+                            <p class="text-xs text-gray">
+                                {% if mov.member %}{{ mov.member.get_full_name }} · {% endif %}
+                                {{ mov.date|date:"d M Y H:i" }}
+                            </p>
+                            {% if mov.notes %}<p class="text-xs text-gray italic mt-0.5">{{ mov.notes }}</p>{% endif %}
+                        </div>
+                    </div>
+                    {% if mov.expected_return_date %}
+                    <span class="text-xs text-gray">Devolver: {{ mov.expected_return_date|date:"d M" }}</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="px-6 py-6 text-center text-sm text-gray">Sin movimientos registrados.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar: registrar movimiento -->
+    <div class="space-y-6">
+        <div class="bg-white border border-light-gray rounded">
+            <div class="px-6 py-4 border-b border-light-gray">
+                <h3 class="text-sm font-medium text-black uppercase tracking-wider">Registrar Movimiento</h3>
+            </div>
+            <form method="POST" action="{% url 'inventory:item_add_movement' item.id %}" class="p-6 space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Tipo *</label>
+                    <select name="movement_type" required class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                        <option value="checkout">Préstamo / Salida</option>
+                        <option value="return">Devolución</option>
+                        <option value="maintenance">Enviar a mantenimiento</option>
+                        <option value="maintenance_done">Regresó de mantenimiento</option>
+                        <option value="transfer">Transferencia</option>
+                        <option value="lost">Reportar extraviado</option>
+                        <option value="found">Recuperado</option>
+                        <option value="retired">Dar de baja</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Miembro</label>
+                    <select name="member" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                        <option value="">Ninguno</option>
+                        {% for m in members %}
+                        <option value="{{ m.id }}">{{ m.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Fecha esperada de devolución</label>
+                    <input type="date" name="expected_return_date"
+                           class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Notas</label>
+                    <textarea name="notes" rows="2" class="w-full border border-light-gray p-2 focus:outline-none text-sm resize-none"></textarea>
+                </div>
+                <button type="submit" class="w-full px-4 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+                    <i class="fa-solid fa-plus mr-2"></i>Registrar Movimiento
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

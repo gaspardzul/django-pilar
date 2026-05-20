@@ -99,6 +99,31 @@
                     <i class="fa-solid fa-tags text-xs w-4 text-center"></i> Catálogos
                 </a>
 
+                <!-- Inventory Section -->
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Inventario</p>
+                </div>
+                <a href="{% url 'inventory:home' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if request.path == '/inventory/' %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-boxes-stacked text-xs w-4 text-center"></i> Resumen
+                </a>
+                <a href="{% url 'inventory:items_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'inventory/items' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-box text-xs w-4 text-center"></i> Artículos
+                </a>
+                <a href="{% url 'inventory:categories_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'inventory/categories' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-layer-group text-xs w-4 text-center"></i> Categorías
+                </a>
+
+                <!-- Services Section -->
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Programa</p>
+                </div>
+                <a href="{% url 'services:calendar' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'services' in request.path and 'types' not in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-calendar-days text-xs w-4 text-center"></i> Calendario
+                </a>
+                <a href="{% url 'services:types_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded text-sm {% if 'services/types' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %}">
+                    <i class="fa-solid fa-church text-xs w-4 text-center"></i> Tipos de Servicio
+                </a>
+
                 <!-- Account Section -->
                 <div class="pt-4 pb-2">
                     <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Cuenta</p>
@@ -187,6 +212,31 @@
                 </a>
                 <a href="{% url 'finance:catalogs' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'finance/catalogs' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
                     <i class="fa-solid fa-tags text-xs w-4 text-center"></i> Catálogos
+                </a>
+
+                <!-- Inventory Section -->
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Inventario</p>
+                </div>
+                <a href="{% url 'inventory:home' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if request.path == '/inventory/' %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-boxes-stacked text-xs w-4 text-center"></i> Resumen
+                </a>
+                <a href="{% url 'inventory:items_list' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'inventory/items' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-box text-xs w-4 text-center"></i> Artículos
+                </a>
+                <a href="{% url 'inventory:categories_list' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'inventory/categories' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-layer-group text-xs w-4 text-center"></i> Categorías
+                </a>
+
+                <!-- Services Section -->
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-[10px] font-medium text-gray uppercase tracking-wider">Programa</p>
+                </div>
+                <a href="{% url 'services:calendar' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'services' in request.path and 'types' not in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-calendar-days text-xs w-4 text-center"></i> Calendario
+                </a>
+                <a href="{% url 'services:types_list' %}" class="flex items-center gap-3 px-3 py-2 rounded text-sm {% if 'services/types' in request.path %}bg-primary text-white{% else %}text-gray hover:text-primary hover:bg-primary/5{% endif %} transition-colors">
+                    <i class="fa-solid fa-church text-xs w-4 text-center"></i> Tipos de Servicio
                 </a>
 
                 <!-- Account Section -->

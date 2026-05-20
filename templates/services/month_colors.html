@@ -1,0 +1,49 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Colores de Mes{% endblock %}
+{% block page_title %}Colores de Mes{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6">
+    <a href="{% url 'services:calendar' %}" class="text-xs text-gray hover:text-black"><i class="fa-solid fa-arrow-left mr-1"></i>Calendario</a>
+</div>
+
+<div class="mb-4">
+    <h2 class="text-lg font-medium text-black">Esquema de Colores por Mes</h2>
+    <p class="text-sm text-gray mt-1">Define el color del encabezado y acento para cada mes del reporte impreso.</p>
+</div>
+
+<form method="POST" class="bg-white border border-light-gray rounded">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 divide-x divide-y divide-light-gray">
+        {% for m in months_data %}
+        <div class="p-4">
+            <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium text-black">{{ m.name }}</p>
+                <div class="flex gap-1">
+                    <span class="w-5 h-5 rounded-sm border border-light-gray" style="background:{{ m.header_color }}"></span>
+                    <span class="w-5 h-5 rounded-sm border border-light-gray" style="background:{{ m.accent_color }}"></span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] text-gray uppercase tracking-wider mb-1">Encabezado</label>
+                    <input type="color" name="header_{{ m.num }}" value="{{ m.header_color }}"
+                           class="w-full h-8 border border-light-gray rounded cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-gray uppercase tracking-wider mb-1">Acento</label>
+                    <input type="color" name="accent_{{ m.num }}" value="{{ m.accent_color }}"
+                           class="w-full h-8 border border-light-gray rounded cursor-pointer">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="px-6 py-4 border-t border-light-gray bg-[#fafafa]">
+        <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+            <i class="fa-solid fa-check mr-2"></i>Guardar Colores
+        </button>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Tipo de Servicio{% endblock %}
+{% block page_title %}{{ action }} Tipo de Servicio{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6">
+    <a href="{% url 'services:types_list' %}" class="text-xs text-gray hover:text-black"><i class="fa-solid fa-arrow-left mr-1"></i>Tipos</a>
+</div>
+
+<div class="max-w-lg bg-white border border-light-gray rounded">
+    <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-sm font-medium text-black uppercase tracking-wider">{{ action }} Tipo de Servicio</h3>
+    </div>
+    <form method="POST" class="p-6 space-y-5">
+        {% csrf_token %}
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Nombre *</label>
+            <input type="text" name="name" value="{{ service_type.name|default:'' }}" required placeholder="Ej: Culto Dominical"
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Descripción</label>
+            <input type="text" name="description" value="{{ service_type.description|default:'' }}"
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        <div class="grid grid-cols-2 gap-5">
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Días habituales</label>
+                <div class="grid grid-cols-2 gap-2">
+                    {% with selected=service_type.default_weekdays|default:"" %}
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" name="default_weekdays" value="0" {% if "0" in selected %}checked{% endif %} class="w-4 h-4"> Lunes
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" name="default_weekdays" value="1" {% if "1" in selected %}checked{% endif %} class="w-4 h-4"> Martes
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" name="default_weekdays" value="2" {% if "2" in selected %}checked{% endif %} class="w-4 h-4"> Miércoles
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" name="default_weekdays" value="3" {% if "3" in selected %}checked{% endif %} class="w-4 h-4"> Jueves
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" name="default_weekdays" value="4" {% if "4" in selected %}checked{% endif %} class="w-4 h-4"> Viernes
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" name="default_weekdays" value="5" {% if "5" in selected %}checked{% endif %} class="w-4 h-4"> Sábado
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" name="default_weekdays" value="6" {% if "6" in selected %}checked{% endif %} class="w-4 h-4"> Domingo
+                    </label>
+                    {% endwith %}
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Color</label>
+                <input type="color" name="color" value="{{ service_type.color|default:'#0B7FB3' }}"
+                       class="w-full h-10 border border-light-gray rounded cursor-pointer">
+                <p class="text-xs text-gray mt-1">Color en el calendario</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-5">
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Color de texto (reporte)</label>
+                <input type="color" name="text_color" value="{{ service_type.text_color|default:'#000000' }}"
+                       class="w-full h-10 border border-light-gray rounded cursor-pointer">
+                <p class="text-xs text-gray mt-1">Color del texto al imprimir</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-5">
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Hora inicio</label>
+                <input type="time" name="default_start_time" value="{{ service_type.default_start_time|time:'H:i'|default:'' }}"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Hora fin</label>
+                <input type="time" name="default_end_time" value="{{ service_type.default_end_time|time:'H:i'|default:'' }}"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+        </div>
+        {% if action == 'Editar' %}
+        <div class="flex items-center gap-3">
+            <input type="checkbox" name="active" id="active" {% if service_type.active %}checked{% endif %} class="w-4 h-4">
+            <label for="active" class="text-sm text-black">Activo</label>
+        </div>
+        {% endif %}
+        <div class="flex items-center gap-3 pt-4 border-t border-light-gray">
+            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">{{ action }}</button>
+            <a href="{% url 'services:types_list' %}" class="px-6 py-2.5 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

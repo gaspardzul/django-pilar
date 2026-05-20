@@ -412,4 +412,32 @@
         </form>
     </div>
 </div>
+
+<!-- Elegibilidad en Servicios -->
+<div class="mt-6 bg-white border border-light-gray rounded">
+    <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-sm font-medium text-black uppercase tracking-wider">
+            <i class="fa-solid fa-calendar-check mr-2"></i>Participación en Cultos
+        </h3>
+    </div>
+    <div class="px-6 py-4 flex items-center justify-between">
+        <div>
+            <p class="text-sm text-black">¿Este miembro puede participar en los cultos?</p>
+            <p class="text-xs text-gray mt-0.5">Solo los miembros elegibles aparecerán como opción al programar servicios.</p>
+        </div>
+        <form method="POST" action="{% url 'dashboard:member_toggle_eligibility' member.id %}">
+            {% csrf_token %}
+            {% if member.is_service_eligible %}
+            <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 text-sm rounded hover:bg-green-200 transition-colors">
+                <i class="fa-solid fa-circle-check mr-2"></i>Elegible
+            </button>
+            {% else %}
+            <button type="submit" class="px-4 py-2 border border-light-gray text-gray text-sm rounded hover:bg-[#fafafa] transition-colors">
+                <i class="fa-regular fa-circle mr-2"></i>No elegible
+            </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
 {% endblock %}

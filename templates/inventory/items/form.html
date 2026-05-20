@@ -1,0 +1,103 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Artículo | Inventario{% endblock %}
+{% block page_title %}{{ action }} Artículo{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6">
+    <a href="{% url 'inventory:items_list' %}" class="text-xs text-gray hover:text-black"><i class="fa-solid fa-arrow-left mr-1"></i>Artículos</a>
+</div>
+
+<div class="max-w-2xl bg-white border border-light-gray rounded">
+    <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-sm font-medium text-black uppercase tracking-wider">{{ action }} Artículo</h3>
+    </div>
+    <form method="POST" class="p-6 space-y-5">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Nombre *</label>
+                <input type="text" name="name" value="{{ item.name|default:'' }}" required
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Categoría *</label>
+                <select name="category" required class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    <option value="">Seleccionar...</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if item.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Código / Serie</label>
+                <input type="text" name="code" value="{{ item.code|default:'' }}"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent font-mono">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Cantidad</label>
+                <input type="number" name="quantity" value="{{ item.quantity|default:'1' }}" min="1"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Condición</label>
+                <select name="condition" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    <option value="new" {% if item.condition == 'new' %}selected{% endif %}>Nuevo</option>
+                    <option value="good" {% if not item or item.condition == 'good' %}selected{% endif %}>Bueno</option>
+                    <option value="fair" {% if item.condition == 'fair' %}selected{% endif %}>Regular</option>
+                    <option value="poor" {% if item.condition == 'poor' %}selected{% endif %}>Malo</option>
+                    <option value="damaged" {% if item.condition == 'damaged' %}selected{% endif %}>Dañado</option>
+                    <option value="retired" {% if item.condition == 'retired' %}selected{% endif %}>Dado de baja</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Estado</label>
+                <select name="status" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    <option value="available" {% if not item or item.status == 'available' %}selected{% endif %}>Disponible</option>
+                    <option value="in_use" {% if item.status == 'in_use' %}selected{% endif %}>En uso</option>
+                    <option value="lent" {% if item.status == 'lent' %}selected{% endif %}>Prestado</option>
+                    <option value="maintenance" {% if item.status == 'maintenance' %}selected{% endif %}>En mantenimiento</option>
+                    <option value="lost" {% if item.status == 'lost' %}selected{% endif %}>Extraviado</option>
+                    <option value="retired" {% if item.status == 'retired' %}selected{% endif %}>Dado de baja</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Ubicación</label>
+                <input type="text" name="location" value="{{ item.location|default:'' }}" placeholder="Bodega, oficina..."
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Responsable</label>
+                <select name="assigned_to" class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+                    <option value="">Ninguno</option>
+                    {% for m in members %}
+                    <option value="{{ m.id }}" {% if item.assigned_to_id == m.id %}selected{% endif %}>{{ m.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Fecha de compra</label>
+                <input type="date" name="purchase_date" value="{{ item.purchase_date|date:'Y-m-d'|default:'' }}"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Precio de compra</label>
+                <input type="number" name="purchase_price" value="{{ item.purchase_price|default:'' }}" step="0.01" min="0"
+                       class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+            </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Descripción</label>
+                <textarea name="description" rows="2" class="w-full border border-light-gray p-2 focus:outline-none text-sm resize-none">{{ item.description|default:'' }}</textarea>
+            </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Notas</label>
+                <textarea name="notes" rows="2" class="w-full border border-light-gray p-2 focus:outline-none text-sm resize-none">{{ item.notes|default:'' }}</textarea>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 pt-4 border-t border-light-gray">
+            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">{{ action }} Artículo</button>
+            <a href="{% url 'inventory:items_list' %}" class="px-6 py-2.5 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

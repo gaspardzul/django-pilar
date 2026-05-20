@@ -35,6 +35,9 @@ class Member(models.Model):
     baptism_date = models.DateField(null=True, blank=True, verbose_name='Fecha de bautismo')
     baptism_place = models.CharField(max_length=200, blank=True, verbose_name='Lugar de bautismo')
     baptized_by = models.CharField(max_length=200, blank=True, verbose_name='Bautizado por')
+
+    # Service eligibility
+    is_service_eligible = models.BooleanField(default=False, verbose_name='Elegible para cultos')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

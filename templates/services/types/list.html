@@ -1,0 +1,43 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Tipos de Servicio{% endblock %}
+{% block page_title %}Tipos de Servicio{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6 flex items-center justify-between">
+    <a href="{% url 'services:calendar' %}" class="text-xs text-gray hover:text-black"><i class="fa-solid fa-arrow-left mr-1"></i>Calendario</a>
+    <a href="{% url 'services:type_create' %}" class="px-4 py-2 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">
+        <i class="fa-solid fa-plus mr-2"></i>Nuevo Tipo
+    </a>
+</div>
+
+<p class="text-sm text-gray mb-4">Define los tipos de actividad (Culto, Oración, Mensaje, Ensayo) y sus partes.</p>
+
+<div class="space-y-4">
+    {% for stype in service_types %}
+    <div class="bg-white border border-light-gray rounded" style="border-left:4px solid {{ stype.color }}">
+        <div class="px-6 py-4 flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-black">{{ stype.name }}</p>
+                <p class="text-xs text-gray mt-0.5">
+                    {% if stype.get_weekdays_display %}{{ stype.get_weekdays_display }}{% endif %}
+                    {% if stype.default_start_time %} · {{ stype.default_start_time|time:"H:i" }} - {{ stype.default_end_time|time:"H:i" }}{% endif %}
+                    · {{ stype.parts.count }} parte{% if stype.parts.count != 1 %}s{% endif %}
+                </p>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'services:type_parts' stype.id %}" class="px-3 py-1.5 border border-black text-black text-xs hover:bg-black hover:text-white transition-colors">
+                    <i class="fa-solid fa-list mr-1"></i>Partes
+                </a>
+                <a href="{% url 'services:type_edit' stype.id %}" class="text-xs text-gray hover:text-black"><i class="fa-solid fa-pen"></i></a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-white border border-light-gray rounded p-12 text-center">
+        <i class="fa-solid fa-church text-gray text-3xl mb-3"></i>
+        <p class="text-sm text-gray">No hay tipos de servicio. Crea el primero.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

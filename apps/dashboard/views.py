@@ -24,19 +24,69 @@ from .tasks import (
 @login_required
 @require_http_methods(['GET'])
 def dashboard_home(request):
-    # Get statistics
+    from django.db.models import Sum
+    from apps.finance.models import FinancialAccount, Transaction
+    from apps.inventory.models import Item
+    from apps.services.models import ServiceSchedule
+
+    today = timezone.now().date()
+    first_day_month = today.replace(day=1)
+
+    # Stats principales
     total_members = Member.objects.filter(status='active').count()
     total_ministries = Ministry.objects.filter(active=True).count()
     total_families = Family.objects.count()
-    
-    # Recent members (last 5)
+    upcoming_events = Event.objects.filter(start_date__gte=today).count()
+    total_items = Item.objects.count()
+    total_balance = FinancialAccount.objects.filter(active=True).aggregate(t=Sum('current_balance'))['t'] or 0
+
+    # Finanzas del mes
+    monthly_income = Transaction.objects.filter(
+        transaction_type='income', status='completed', date__gte=first_day_month, date__lte=today
+    ).aggregate(t=Sum('amount'))['t'] or 0
+    monthly_expense = Transaction.objects.filter(
+        transaction_type='expense', status='completed', date__gte=first_day_month, date__lte=today
+    ).aggregate(t=Sum('amount'))['t'] or 0
+
+    # Próximos servicios (7 días)
+    next_week = today + timezone.timedelta(days=7)
+    upcoming_services = ServiceSchedule.objects.filter(
+        date__gte=today, date__lte=next_week, is_cancelled=False
+    ).select_related('service_type').prefetch_related('assignments__member', 'assignments__service_part')[:5]
+
+    # Próximos eventos
+    upcoming_events_list = Event.objects.filter(start_date__gte=today).order_by('start_date')[:3]
+
+    # Artículos prestados
+    lent_items = Item.objects.filter(status='lent').select_related('assigned_to', 'category')[:5]
+
+    # Últimas transacciones
+    recent_transactions = Transaction.objects.select_related('account', 'category').order_by('-date', '-created_at')[:5]
+
+    # Miembros recientes
     recent_members = Member.objects.all().order_by('-created_at')[:5]
-    
+
+    # Hospedaje pendiente
+    events_lodging_pending = Event.objects.filter(
+        requires_lodging=True, start_date__gte=today
+    ).prefetch_related('lodging')[:3]
+
     context = {
         'total_members': total_members,
         'total_ministries': total_ministries,
         'total_families': total_families,
+        'upcoming_events': upcoming_events,
+        'total_items': total_items,
+        'total_balance': total_balance,
+        'monthly_income': monthly_income,
+        'monthly_expense': monthly_expense,
+        'upcoming_services': upcoming_services,
+        'upcoming_events_list': upcoming_events_list,
+        'lent_items': lent_items,
+        'recent_transactions': recent_transactions,
         'recent_members': recent_members,
+        'events_lodging_pending': events_lodging_pending,
+        'today': today,
     }
     return render(request, 'dashboard/home.html', context)
 
@@ -297,6 +347,8 @@ def member_detail(request, member_id):
     # Get available families (not already in)
     current_family_ids = families.values_list('family_id', flat=True)
     available_families = Family.objects.exclude(id__in=current_family_ids).order_by('family_name')
+
+    # Service eligibility is now a field on Member, no extra context needed
     
     context = {
         'member': member,
@@ -440,6 +492,15 @@ def member_add_to_family(request, member_id):
             
             messages.success(request, f'Agregado a la familia {family.family_name} exitosamente.')
     
+    return redirect('dashboard:member_detail', member_id=member_id)
+
+
+@login_required
+@require_http_methods(['POST'])
+def member_toggle_eligibility(request, member_id):
+    member = get_object_or_404(Member, id=member_id)
+    member.is_service_eligible = not member.is_service_eligible
+    member.save(update_fields=['is_service_eligible'])
     return redirect('dashboard:member_detail', member_id=member_id)
 
 

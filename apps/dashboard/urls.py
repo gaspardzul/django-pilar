@@ -24,6 +24,7 @@ urlpatterns = [
     path('members/<uuid:member_id>/edit/', views.member_edit, name='member_edit'),
     path('members/<uuid:member_id>/add-to-ministry/', views.member_add_to_ministry, name='member_add_to_ministry'),
     path('members/<uuid:member_id>/add-to-family/', views.member_add_to_family, name='member_add_to_family'),
+    path('members/<uuid:member_id>/toggle-eligibility/', views.member_toggle_eligibility, name='member_toggle_eligibility'),
     
     # Ministries
     path('ministries/', views.ministries_list, name='ministries_list'),

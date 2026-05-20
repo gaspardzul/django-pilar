@@ -1,0 +1,116 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ schedule.get_display_title }} — {{ schedule.date|date:"d/m/Y" }}{% endblock %}
+{% block page_title %}{{ schedule.get_display_title }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6">
+    <a href="{% url 'services:calendar' %}?year={{ schedule.date.year }}&month={{ schedule.date.month }}" class="text-xs text-gray hover:text-black">
+        <i class="fa-solid fa-arrow-left mr-1"></i>Calendario
+    </a>
+</div>
+
+<!-- Header -->
+<div class="mb-6 bg-white border border-light-gray rounded p-6" style="border-left:4px solid {{ schedule.service_type.color }}">
+    <div class="flex items-start justify-between">
+        <div>
+            <h2 class="text-lg font-medium text-black">{{ schedule.get_display_title }}</h2>
+            <p class="text-sm text-gray mt-1">
+                <i class="fa-solid fa-calendar mr-1"></i>{{ schedule.date|date:"l d \d\e F \d\e Y" }}
+                {% if schedule.start_time %} · {{ schedule.start_time|time:"H:i" }}{% endif %}
+                {% if schedule.end_time %} - {{ schedule.end_time|time:"H:i" }}{% endif %}
+            </p>
+            {% if schedule.notes %}<p class="text-sm text-gray mt-2">{{ schedule.notes }}</p>{% endif %}
+        </div>
+        {% if schedule.is_cancelled %}
+        <span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded">Cancelado</span>
+        {% endif %}
+        <div class="flex items-center gap-2">
+            <a href="{% url 'services:schedule_edit' schedule.id %}" class="px-3 py-1.5 border border-black text-black text-xs rounded hover:bg-black hover:text-white transition-colors">
+                <i class="fa-solid fa-pen mr-1"></i>Editar
+            </a>
+            <form method="POST" action="{% url 'services:schedule_delete' schedule.id %}"
+                  onsubmit="return confirm('¿Eliminar este servicio del calendario? Se borrarán todas las asignaciones.')">
+                {% csrf_token %}
+                <button type="submit" class="px-3 py-1.5 border border-red-300 text-red-600 text-xs rounded hover:bg-red-50 transition-colors">
+                    <i class="fa-solid fa-trash mr-1"></i>Eliminar
+                </button>
+            </form>
+        </div>    </div>
+</div>
+
+<!-- Partes y asignaciones -->
+<div class="space-y-4">
+    {% for item in parts_data %}
+    <div class="bg-white border border-light-gray rounded">
+        <div class="px-6 py-4 border-b border-light-gray flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-medium text-black">{{ item.part.name }}</h3>
+                <p class="text-xs text-gray">{{ item.part.duration_minutes }} min · {{ item.filled }}/{{ item.max }} asignado{% if item.max != 1 %}s{% endif %}</p>
+            </div>
+            {% if item.filled < item.max %}
+            <span class="text-xs text-yellow-600"><i class="fa-solid fa-circle-exclamation mr-1"></i>Falta asignar</span>
+            {% else %}
+            <span class="text-xs text-green-600"><i class="fa-solid fa-circle-check mr-1"></i>Completo</span>
+            {% endif %}
+        </div>
+
+        <!-- Assigned members -->
+        {% if item.assignments %}
+        <div class="divide-y divide-light-gray">
+            {% for assignment in item.assignments %}
+            <div class="px-6 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-7 h-7 bg-primary rounded-full flex items-center justify-center text-white text-xs">
+                        {{ assignment.member.first_name|first }}
+                    </div>
+                    <div>
+                        <p class="text-sm text-black">{{ assignment.member.get_full_name }}</p>
+                        <p class="text-xs text-gray">{{ assignment.get_role_display }}{% if assignment.notes %} · {{ assignment.notes }}{% endif %}</p>
+                    </div>
+                </div>
+                <form method="POST" action="{% url 'services:schedule_remove_assignment' schedule.id assignment.id %}"
+                      onsubmit="return confirm('¿Remover a {{ assignment.member.get_full_name }}?')">
+                    {% csrf_token %}
+                    <button type="submit" class="text-xs text-gray hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Add assignment form -->
+        {% if item.filled < item.max and item.available_members %}
+        <div class="px-6 py-3 border-t border-light-gray bg-[#fafafa]">
+            <form method="POST" action="{% url 'services:schedule_assign' schedule.id %}" class="flex flex-wrap gap-3 items-end">
+                {% csrf_token %}
+                <input type="hidden" name="service_part" value="{{ item.part.id }}">
+                <div class="flex-1 min-w-40">
+                    <select name="member" required class="w-full border-b border-black p-1.5 focus:outline-none text-xs bg-transparent">
+                        <option value="">Seleccionar miembro...</option>
+                        {% for m in item.available_members %}
+                        <option value="{{ m.id }}">{{ m.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="min-w-28">
+                    <select name="role" class="w-full border-b border-black p-1.5 focus:outline-none text-xs bg-transparent">
+                        <option value="leader">Líder</option>
+                        <option value="participant" selected>Participante</option>
+                        <option value="support">Apoyo</option>
+                    </select>
+                </div>
+                <button type="submit" class="px-3 py-1.5 bg-primary text-white text-xs hover:bg-primary-dark transition-colors">
+                    <i class="fa-solid fa-plus mr-1"></i>Asignar
+                </button>
+            </form>
+        </div>
+        {% elif item.filled < item.max %}
+        <div class="px-6 py-3 border-t border-light-gray bg-[#fafafa] text-xs text-gray italic">
+            No hay miembros elegibles disponibles. Marca miembros como elegibles desde su ficha.
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

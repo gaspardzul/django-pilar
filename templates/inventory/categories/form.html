@@ -1,0 +1,115 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ action }} Categoría | Inventario{% endblock %}
+{% block page_title %}{{ action }} Categoría{% endblock %}
+
+{% block dashboard_content %}
+<div class="mb-6">
+    <a href="{% url 'inventory:categories_list' %}" class="text-xs text-gray hover:text-black"><i class="fa-solid fa-arrow-left mr-1"></i>Categorías</a>
+</div>
+
+<div class="max-w-md bg-white border border-light-gray rounded">
+    <div class="px-6 py-4 border-b border-light-gray">
+        <h3 class="text-sm font-medium text-black uppercase tracking-wider">{{ action }} Categoría</h3>
+    </div>
+    <form method="POST" class="p-6 space-y-5">
+        {% csrf_token %}
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Nombre *</label>
+            <input type="text" name="name" value="{{ category.name|default:'' }}" required
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Descripción</label>
+            <input type="text" name="description" value="{{ category.description|default:'' }}"
+                   class="w-full border-b-2 border-black p-2 focus:outline-none text-sm bg-transparent">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray uppercase tracking-wider mb-2">Ícono</label>
+            <input type="hidden" name="icon" id="icon-input" value="{{ category.icon|default:'' }}">
+            <div class="grid grid-cols-8 gap-2 p-3 border border-light-gray rounded max-h-48 overflow-y-auto" id="icon-grid">
+            </div>
+            <p class="text-xs text-gray mt-2">Seleccionado: <span id="icon-preview" class="font-medium text-black">{% if category.icon %}<i class="fa-solid {{ category.icon }}"></i> {{ category.icon }}{% else %}ninguno{% endif %}</span></p>
+        </div>
+        {% if action == 'Editar' %}
+        <div class="flex items-center gap-3">
+            <input type="checkbox" name="active" id="active" {% if category.active %}checked{% endif %} class="w-4 h-4">
+            <label for="active" class="text-sm text-black">Categoría activa</label>
+        </div>
+        {% endif %}
+        <div class="flex items-center gap-3 pt-4 border-t border-light-gray">
+            <button type="submit" class="px-6 py-2.5 bg-primary text-white text-sm hover:bg-primary-dark transition-colors">{{ action }}</button>
+            <a href="{% url 'inventory:categories_list' %}" class="px-6 py-2.5 border border-black text-black text-sm hover:bg-black hover:text-white transition-colors">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce }}">
+(function() {
+    var icons = [
+        // Audio & Sonido
+        'fa-microphone', 'fa-headphones', 'fa-volume-high', 'fa-music', 'fa-radio',
+        // Instrumentos
+        'fa-guitar', 'fa-drum',
+        // Mobiliario
+        'fa-chair', 'fa-couch', 'fa-table-cells',
+        // Tecnología
+        'fa-tv', 'fa-laptop', 'fa-computer', 'fa-tablet-screen-button', 'fa-mobile-screen',
+        'fa-camera', 'fa-video', 'fa-display',
+        // Iluminación
+        'fa-lightbulb', 'fa-bolt',
+        // Cocina & Alimentos
+        'fa-utensils', 'fa-mug-hot', 'fa-kitchen-set', 'fa-blender',
+        // Transporte
+        'fa-car', 'fa-van-shuttle', 'fa-truck',
+        // Herramientas
+        'fa-wrench', 'fa-screwdriver-wrench', 'fa-toolbox', 'fa-hammer',
+        // Limpieza
+        'fa-broom', 'fa-pump-soap', 'fa-spray-can-sparkles',
+        // Oficina
+        'fa-print', 'fa-pen', 'fa-book', 'fa-folder', 'fa-paperclip',
+        // Iglesia
+        'fa-cross', 'fa-church', 'fa-bible', 'fa-hands-praying', 'fa-dove',
+        // Deportes & Recreación
+        'fa-futbol', 'fa-basketball', 'fa-volleyball',
+        // Almacenamiento
+        'fa-box', 'fa-boxes-stacked', 'fa-warehouse', 'fa-archive',
+        // Seguridad
+        'fa-lock', 'fa-key', 'fa-shield-halved', 'fa-fire-extinguisher',
+        // Textiles
+        'fa-shirt', 'fa-tent',
+        // Electricidad
+        'fa-plug', 'fa-car-battery', 'fa-solar-panel',
+        // Otros
+        'fa-gift', 'fa-flag', 'fa-star', 'fa-heart', 'fa-circle-info',
+    ];
+
+    var grid = document.getElementById('icon-grid');
+    var input = document.getElementById('icon-input');
+    var preview = document.getElementById('icon-preview');
+    var currentValue = input.value;
+
+    icons.forEach(function(icon) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-9 h-9 flex items-center justify-center rounded border transition-all hover:bg-primary/10 hover:border-primary ' +
+            (currentValue === icon ? 'bg-primary text-white border-primary' : 'border-light-gray text-gray');
+        btn.innerHTML = '<i class="fa-solid ' + icon + ' text-sm"></i>';
+        btn.title = icon;
+        btn.addEventListener('click', function() {
+            // Deselect all
+            grid.querySelectorAll('button').forEach(function(b) {
+                b.className = 'w-9 h-9 flex items-center justify-center rounded border transition-all hover:bg-primary/10 hover:border-primary border-light-gray text-gray';
+            });
+            // Select this one
+            btn.className = 'w-9 h-9 flex items-center justify-center rounded border transition-all bg-primary text-white border-primary';
+            input.value = icon;
+            preview.innerHTML = '<i class="fa-solid ' + icon + '"></i> ' + icon;
+        });
+        grid.appendChild(btn);
+    });
+})();
+</script>
+{% endblock %}
